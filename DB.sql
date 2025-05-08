@@ -11,20 +11,27 @@ CREATE TABLE Usuarios (
     Email NVARCHAR(150) UNIQUE NOT NULL,
     Telefono NVARCHAR(20),
     TipoUsuario VARCHAR(20) CHECK (TipoUsuario IN ('Interno', 'Externo')),
-    MetodoAutenticacion VARCHAR(20) CHECK (MetodoAutenticacion IN ('Correo', 'Google')),
+    MetodoAutenticacion VARCHAR(20) CHECK (MetodoAutenticacion IN ('Correo')),
     ContrasenaHash NVARCHAR(MAX),
     FechaRegistro DATETIME DEFAULT GETDATE(),
     Estado BIT CHECK (Estado IN (0, 1))
 );
 
--- Tabla ClientesExternos
-CREATE TABLE ClientesExternos (
-    UsuarioId INT PRIMARY KEY,
+-- Tabla EmpresasExternas
+CREATE TABLE EmpresasExternas (
+    EmpresaId INT PRIMARY KEY IDENTITY,
     NombreEmpresa NVARCHAR(100),
     ContactoPrincipal NVARCHAR(100),
     TelefonoEmpresa NVARCHAR(20),
-    DireccionEmpresa NVARCHAR(200),
-    FOREIGN KEY (UsuarioId) REFERENCES Usuarios(UsuarioId)
+    DireccionEmpresa NVARCHAR(200)
+);
+
+-- Tabla ClientesExternos
+CREATE TABLE ClientesExternos (
+    UsuarioId INT PRIMARY KEY,
+    EmpresaId INT,
+    FOREIGN KEY (UsuarioId) REFERENCES Usuarios(UsuarioId),
+    FOREIGN KEY (EmpresaId) REFERENCES EmpresasExternas(EmpresaId)
 );
 
 -- Tabla Roles
@@ -42,27 +49,20 @@ CREATE TABLE Usuarios_Roles (
     FOREIGN KEY (RolId) REFERENCES Roles(RolId)
 );
 
--- Tabla Permisos
-CREATE TABLE Permisos (
-    PermisoId INT PRIMARY KEY IDENTITY,
-    NombrePermiso NVARCHAR(100) UNIQUE,
-    Descripcion NVARCHAR(255)
-);
-
--- Tabla Roles_Permisos
-CREATE TABLE Roles_Permisos (
-    RolId INT,
-    PermisoId INT,
-    PRIMARY KEY (RolId, PermisoId),
-    FOREIGN KEY (RolId) REFERENCES Roles(RolId),
-    FOREIGN KEY (PermisoId) REFERENCES Permisos(PermisoId)
-);
-
 -- Tabla Categorias
 CREATE TABLE Categorias (
     CategoriaId INT PRIMARY KEY IDENTITY,
     Nombre NVARCHAR(100),
     Descripcion NVARCHAR(255)
+);
+
+-- Tabla Usuarios_Categorias
+CREATE TABLE Usuarios_Categorias (
+    UsuarioId INT,
+    CategoriaId INT,
+    PRIMARY KEY (UsuarioId, CategoriaId),
+    FOREIGN KEY (UsuarioId) REFERENCES Usuarios(UsuarioId),
+    FOREIGN KEY (CategoriaId) REFERENCES Categorias(CategoriaId)
 );
 
 -- Tabla EstadosTicket
@@ -76,15 +76,31 @@ CREATE TABLE Tickets (
     TicketId INT PRIMARY KEY IDENTITY,
     UsuarioCreadorId INT,
     CategoriaId INT,
+    Titulo NVARCHAR(100),
     AplicacionAfectada NVARCHAR(100),
     Descripcion NVARCHAR(MAX),
-    Prioridad VARCHAR(20) CHECK (Prioridad IN ('Crítico', 'Importante', 'Baja')),
+    Prioridad VARCHAR(20) CHECK (Prioridad IN ('Alta', 'Media', 'Baja')),
     EstadoId INT,
     FechaCreacion DATETIME DEFAULT GETDATE(),
     FechaCierre DATETIME,
     FOREIGN KEY (UsuarioCreadorId) REFERENCES Usuarios(UsuarioId),
     FOREIGN KEY (CategoriaId) REFERENCES Categorias(CategoriaId),
     FOREIGN KEY (EstadoId) REFERENCES EstadosTicket(EstadoId)
+);
+
+-- Tabla HistorialEstadosTicket
+CREATE TABLE HistorialEstadosTicket (
+    HistorialId INT PRIMARY KEY IDENTITY,
+    TicketId INT,
+    EstadoAnterior INT,
+    EstadoNuevo INT,
+    UsuarioCambioId INT,
+    FechaCambio DATETIME DEFAULT GETDATE(),
+    Comentarios NVARCHAR(500),
+    FOREIGN KEY (TicketId) REFERENCES Tickets(TicketId),
+    FOREIGN KEY (EstadoAnterior) REFERENCES EstadosTicket(EstadoId),
+    FOREIGN KEY (EstadoNuevo) REFERENCES EstadosTicket(EstadoId),
+    FOREIGN KEY (UsuarioCambioId) REFERENCES Usuarios(UsuarioId)
 );
 
 -- Tabla Adjuntos
@@ -116,7 +132,7 @@ CREATE TABLE TareasColaborativas (
     UsuarioDestinoId INT,
     Descripcion NVARCHAR(500),
     FechaAsignacion DATETIME DEFAULT GETDATE(),
-    Estado VARCHAR(20) CHECK (Estado IN ('Pendiente', 'EnProgreso', 'Completada')),
+    Estado VARCHAR(20) CHECK (Estado IN ('Pendiente', 'EnProgreso', 'Completada','Cancelado','Rechazado','EsperaInformacion')),
     FOREIGN KEY (TicketId) REFERENCES Tickets(TicketId),
     FOREIGN KEY (AsignadorId) REFERENCES Usuarios(UsuarioId),
     FOREIGN KEY (UsuarioDestinoId) REFERENCES Usuarios(UsuarioId)
