@@ -1,5 +1,155 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    Layout = "~/Views/Shared/_LayoutLogin.cshtml";
 }
+
+<div class="register-container">
+    <img src="~/media/FIXAzul.svg" alt="Logo" class="logo">
+
+    <form class="row g-3">
+        <div class="col-md-6 input-group-custom">
+            <input type="text" class="input-register" placeholder="Nombre">
+            <i class="bi bi-person icon-input"></i>
+        </div>
+        <div class="col-md-6 input-group-custom">
+            <input type="text" class="input-register" placeholder="Apellido">
+            <i class="bi bi-person icon-input"></i>
+        </div>
+        <div class="col-12 input-group-custom">
+            <input type="email" class="input-register" placeholder="Correo Electrónico">
+            <i class="bi bi-envelope icon-input"></i>
+        </div>
+        <div class="col-12 input-group-custom">
+            <input type="tel" class="input-register" placeholder="Teléfono">
+            <i class="bi bi-telephone icon-input"></i>
+        </div>
+        <div class="col-md-6 input-group-custom">
+            <input type="password" class="input-register" id="password" placeholder="Contraseña">
+            <i class="bi bi-lock-fill icon-input"></i>
+            <i class="bi bi-eye-slash toggle-password" toggle="#password"></i>
+        </div>
+        <div class="col-md-6 input-group-custom">
+            <input type="password" class="input-register" id="confirm-password" placeholder="Confirmar Contraseña">
+            <i class="bi bi-lock-fill icon-input"></i>
+            <i class="bi bi-eye-slash toggle-password" toggle="#confirm-password"></i>
+        </div>
+
+        <div class="col-12">
+            <button type="submit" class="btn btn-register">Registrarse</button>
+        </div>
+    </form>
+
+</div>
+<div class="bottom-text">
+    <strong>¿Posees una cuenta?</strong> <a asp-controller="Auth" asp-action="Login">Iniciar Sesión</a>
+</div>
+<style>
+    body {
+        min-height: 100dvh;
+        margin: 0;
+        background-color: #4A6B96;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .register-container {
+        width: 100%;
+        max-width: 750px;
+        background-color: #fff4e9;
+        padding: 40px 30px;
+        border-radius: 30px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .logo {
+        width: 60%;
+        max-width: 200px;
+        display: block;
+        margin: 0 auto 15px auto;
+    }
+
+    .input-group-custom {
+        position: relative;
+    }
+
+    .input-register {
+        width: 100%;
+        background-color: #D9D9D9;
+        border: none;
+        border-radius: 30px;
+        padding-left: 50px;
+        height: 50px;
+        font-size: 16px;
+    }
+
+        .input-register:focus {
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+    .icon-input {
+        position: absolute;
+        left: 25px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2rem;
+        color: #4a6b96;
+    }
+
+    .btn-register {
+        width: 100%;
+        background-color: #d9d9d9;
+        border: none;
+        border-radius: 30px;
+        height: 50px;
+        font-weight: bold;
+    }
+
+        .btn-register:hover {
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            background-color: #9e9e9e;
+        }
+
+    .toggle-password {
+        position: absolute;
+        right: 25px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2rem;
+        color: #4a6b96;
+        cursor: pointer;
+    }
+
+    .bottom-text {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 14px;
+    }
+
+        .bottom-text a {
+            margin-left: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+    @@media (max-width: 576px) {
+        .row > div {
+            margin-bottom: 15px;
+        }
+    }
+</style>
+
+<script>
+    document.querySelectorAll(".toggle-password").forEach(function (icon) {
+        icon.addEventListener("click", function () {
+            const input = document.querySelector(this.getAttribute("toggle"));
+            const type = input.getAttribute("type") === "password" ? "text" : "password";
+            input.setAttribute("type", type);
+            this.classList.toggle("bi-eye");
+            this.classList.toggle("bi-eye-slash");
+        });
+    });
+</script>

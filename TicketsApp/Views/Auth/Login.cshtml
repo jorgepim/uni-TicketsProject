@@ -3,40 +3,56 @@
 }
 
 <div class="login-container d-flex flex-column justify-content-center align-items-center">
-    <img src="~/media/FIX.svg" alt="Logo" width="35%"/>
-    <form class="d-flex flex-column gap-3 justify-content-center align-items-center">
-        <div class="position-relative">
-            <input type="text" class="form-control input-login" id="username" placeholder="Correo Electrónico">
-            <i class="bi bi-person-circle position-absolute icon-input"></i>
-        </div>
-        <div class="position-relative">
-            <input type="password" class=" input-login" id="password" placeholder="Contraseña">
-            <i class="bi bi-lock-fill position-absolute icon-input"></i>
-            <i class="bi bi-eye-slash position-absolute toggle-password" id="togglePassword"></i>
-        </div>
-        <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
-    </form>
-    <div>
+    <img src="~/media/FIX.svg" alt="Logo" class="logo" />
 
-    </div>
+    <form class="w-100 d-flex flex-column gap-3">
+        <div class="position-relative">
+            <input type="email" class="form-control input-login" id="username" placeholder="Correo Electrónico">
+            <i class="bi bi-person-circle icon-input"></i>
+        </div>
+
+        <div class="position-relative">
+            <input type="password" class="form-control input-login" id="password" placeholder="Contraseña">
+            <i class="bi bi-lock-fill icon-input"></i>
+            <i class="bi bi-eye-slash toggle-password" id="togglePassword"></i>
+        </div>
+
+        <button type="submit" class="btn w-100 mt-2">Iniciar Sesión</button>
+    </form>
 </div>
 
+<div class="bottom-link">
+    ¿Nuevo aquí? <a asp-controller="Auth" asp-action="Register">Crea una cuenta</a>
+</div>
+
+
 <style>
-    .login-container {
-        height: 60vh;
-        width:60vw;
-        background-color: #4A6B96;
+    body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100dvh; /* Mejor soporte en móviles */
+        background-color: #fff4e9;
         padding: 20px;
-        border-radius: 20px;
+    }
+
+    .login-container {
+        width: 100%;
+        max-width: 500px;
+        background-color: #4A6B96;
+        padding: 40px 30px;
+        border-radius: 30px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     .input-login {
-        width:35vw;
+        width: 100%;
         background-color: #D9D9D9;
         border: none;
         border-radius: 25px;
-        padding-left: 60px;
-        height: 45px;
+        padding-left: 50px;
+        height: 55px;
         font-size: 16px;
         color: black;
     }
@@ -46,31 +62,60 @@
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
         }
 
-    .icon-input {
+    .position-relative i.icon-input {
         font-size: 1.3rem;
-        color: #4A6B96;
+        color: #000;
+        position: absolute;
         left: 15px;
-        top: 7px;
-        pointer-events: none;
+        top: 50%;
+        transform: translateY(-50%);
     }
 
-    .toggle-password {
+    .position-relative i.toggle-password {
         font-size: 1.3rem;
-        color: #4A6B96;
+        color: #000;
+        position: absolute;
         right: 15px;
-        top: 7px;
+        top: 50%;
+        transform: translateY(-50%);
         cursor: pointer;
-        pointer-events: auto;
+    }
 
+    .logo {
+        width: 60%;
+        max-width: 200px;
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        background-color: #D9D9D9;
+        height: 55px;
+        border-radius: 25px;
+    }
+
+        .btn:hover {
+            outline: none;
+            background-color: white;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+    .bottom-link {
+        margin-top: 15px;
+        font-size: 18px;
+    }
+
+        .bottom-link a {
+            margin-left: 10px;
+            text-decoration: none;
+            color: #0d6efd;
+        }
 </style>
 
 <script>
-    // JavaScript para alternar visibilidad de la contraseña
     document.getElementById("togglePassword").addEventListener("click", function () {
         const passwordInput = document.getElementById("password");
         const icon = this;
 
-        // Alternar tipo de input (password a text)
         if (passwordInput.type === "password") {
             passwordInput.type = "text";
             icon.classList.remove("bi-eye-slash");
