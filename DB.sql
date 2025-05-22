@@ -3,6 +3,14 @@ CREATE DATABASE TicketDb;
 
 USE TicketDb;
 
+-- ENUM simulados con CHECK (Prioridad y Estado)
+
+-- Tabla Roles
+CREATE TABLE Roles (
+    RolId INT PRIMARY KEY,
+    NombreRol VARCHAR(50) UNIQUE
+);
+
 -- Tabla Usuarios
 CREATE TABLE Usuarios (
     UsuarioId INT PRIMARY KEY IDENTITY,
@@ -11,10 +19,11 @@ CREATE TABLE Usuarios (
     Email NVARCHAR(150) UNIQUE NOT NULL,
     Telefono NVARCHAR(20),
     TipoUsuario VARCHAR(20) CHECK (TipoUsuario IN ('Interno', 'Externo')),
-    MetodoAutenticacion VARCHAR(20) CHECK (MetodoAutenticacion IN ('Correo')),
+    RolId INT,
     ContrasenaHash NVARCHAR(MAX),
     FechaRegistro DATETIME DEFAULT GETDATE(),
-    Estado BIT CHECK (Estado IN (0, 1))
+    Estado BIT CHECK (Estado IN (0, 1)),
+    FOREIGN KEY (RolId) REFERENCES Roles(RolId)
 );
 
 -- Tabla EmpresasExternas
@@ -32,21 +41,6 @@ CREATE TABLE ClientesExternos (
     EmpresaId INT,
     FOREIGN KEY (UsuarioId) REFERENCES Usuarios(UsuarioId),
     FOREIGN KEY (EmpresaId) REFERENCES EmpresasExternas(EmpresaId)
-);
-
--- Tabla Roles
-CREATE TABLE Roles (
-    RolId INT PRIMARY KEY,
-    NombreRol VARCHAR(50) UNIQUE
-);
-
--- Tabla Usuarios_Roles
-CREATE TABLE Usuarios_Roles (
-    UsuarioId INT,
-    RolId INT,
-    PRIMARY KEY (UsuarioId, RolId),
-    FOREIGN KEY (UsuarioId) REFERENCES Usuarios(UsuarioId),
-    FOREIGN KEY (RolId) REFERENCES Roles(RolId)
 );
 
 -- Tabla Categorias
@@ -79,7 +73,7 @@ CREATE TABLE Tickets (
     Titulo NVARCHAR(100),
     AplicacionAfectada NVARCHAR(100),
     Descripcion NVARCHAR(MAX),
-    Prioridad VARCHAR(20) CHECK (Prioridad IN ('Alta', 'Media', 'Baja')),
+    Prioridad VARCHAR(20) CHECK (Prioridad IN ('Crítico', 'Importante', 'Baja')),
     EstadoId INT,
     FechaCreacion DATETIME DEFAULT GETDATE(),
     FechaCierre DATETIME,
@@ -132,7 +126,7 @@ CREATE TABLE TareasColaborativas (
     UsuarioDestinoId INT,
     Descripcion NVARCHAR(500),
     FechaAsignacion DATETIME DEFAULT GETDATE(),
-    Estado VARCHAR(20) CHECK (Estado IN ('Pendiente', 'EnProgreso', 'Completada','Cancelado','Rechazado','EsperaInformacion')),
+    Estado VARCHAR(20) CHECK (Estado IN ('Pendiente', 'EnProgreso', 'Completada')),
     FOREIGN KEY (TicketId) REFERENCES Tickets(TicketId),
     FOREIGN KEY (AsignadorId) REFERENCES Usuarios(UsuarioId),
     FOREIGN KEY (UsuarioDestinoId) REFERENCES Usuarios(UsuarioId)
