@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using TicketsApp.Models.ViewModels;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TicketsApp.Models;
+using TicketsApp.Models.ViewModels;
 
 namespace TicketsApp.Controllers
 {
@@ -13,48 +17,73 @@ namespace TicketsApp.Controllers
             _context = context;
         }
 
+        [HttpGet]
         public IActionResult Login()
         {
-            return View();
-        }
-
-        [HttpGet]
-        public IActionResult Register()
-        {
+            if (User.Identity.IsAuthenticated)
+                return RedirectToAction("RedirigirPorRol");
             return View();
         }
 
         [HttpPost]
-        public IActionResult Register(RegisterViewModel model)
+        public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
-            // Verificar si ya existe el correo
-            if (_context.Usuarios.Any(u => u.Email == model.Email))
+            //string hash = BCrypt.Net.BCrypt.HashPassword(model.Password);
+
+            //// Mostrarlo en pantalla para copiarlo
+            //ViewBag.Hash = hash;
+            //return View(model);
+
+            var user = await _context.Usuarios
+                .Include(u => u.Rol)
+                .FirstOrDefaultAsync(u => u.Email == model.Email);
+
+            if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.ContrasenaHash))
             {
-                ModelState.AddModelError("Email", "Este correo ya está registrado.");
+                ModelState.AddModelError(string.Empty, "Correo o contraseña incorrectos.");
                 return View(model);
             }
 
-            // Crear el nuevo usuario
-            var usuario = new Usuario
+            // Crear claims de autenticación
+            var claims = new List<Claim>
             {
-                Nombre = model.Nombre,
-                Apellido = model.Apellido,
-                Email = model.Email,
-                Telefono = model.Telefono,
-                TipoUsuario = "Externo",
-                RolId = 3, // Asegúrate que el RolId 3 sea el de Cliente
-                ContrasenaHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
-                FechaRegistro = DateTime.Now,
-                Estado = true
+                new Claim(ClaimTypes.Name, user.Nombre ?? ""),
+                new Claim(ClaimTypes.Email, user.Email ?? ""),
+                new Claim(ClaimTypes.Role, user.Rol?.NombreRol ?? "Invitado"),
+                new Claim("UsuarioId", user.UsuarioId.ToString())
             };
 
-            _context.Usuarios.Add(usuario);
-            _context.SaveChanges();
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
+            return RedirectToAction("RedirigirPorRol");
+        }
+
+        [HttpGet]
+        public IActionResult RedirigirPorRol()
+        {
+            var rol = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            return rol switch
+            {
+                "Administrador" => RedirectToAction("Index", "Administrador"),
+                "Técnico" => RedirectToAction("Index", "Tecnico"),
+                "Cliente" => RedirectToAction("Index", "Cliente"),
+                _ => RedirectToAction("Login")
+            };
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Login");
         }
+
+        public IActionResult AccesoDenegado() => RedirectToAction("RedirigirPorRol");
     }
 }

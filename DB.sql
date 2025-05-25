@@ -61,7 +61,7 @@ CREATE TABLE Usuarios_Categorias (
 
 -- Tabla EstadosTicket
 CREATE TABLE EstadosTicket (
-    EstadoId INT PRIMARY KEY,
+    EstadoId INT PRIMARY KEY IDENTITY,
     NombreEstado NVARCHAR(50) UNIQUE
 );
 
@@ -118,20 +118,6 @@ CREATE TABLE Asignaciones (
     FOREIGN KEY (UsuarioAsignadoId) REFERENCES Usuarios(UsuarioId)
 );
 
--- Tabla TareasColaborativas
-CREATE TABLE TareasColaborativas (
-    TareaId INT PRIMARY KEY IDENTITY,
-    TicketId INT,
-    AsignadorId INT,
-    UsuarioDestinoId INT,
-    Descripcion NVARCHAR(500),
-    FechaAsignacion DATETIME DEFAULT GETDATE(),
-    Estado VARCHAR(20) CHECK (Estado IN ('Pendiente', 'EnProgreso', 'Completada')),
-    FOREIGN KEY (TicketId) REFERENCES Tickets(TicketId),
-    FOREIGN KEY (AsignadorId) REFERENCES Usuarios(UsuarioId),
-    FOREIGN KEY (UsuarioDestinoId) REFERENCES Usuarios(UsuarioId)
-);
-
 -- Tabla ComentariosTicket
 CREATE TABLE ComentariosTicket (
     ComentarioId INT PRIMARY KEY IDENTITY,
@@ -159,3 +145,10 @@ CREATE TABLE Notificaciones (
 select *from Roles;
 
 insert Into Roles (NombreRol) values ('Administrador'),('Tecnico'),('Cliente');
+INSERT INTO Categorias (Nombre, Descripcion) VALUES 
+('Soporte Técnico', 'Problemas relacionados con hardware o software.'),
+('Redes', 'Incidentes o solicitudes relacionadas con conectividad, VPN, routers, etc.'),
+('Correo Electrónico', 'Problemas o configuración de cuentas de email.'),
+('Software Empresarial', 'Errores o solicitudes en aplicaciones internas de la empresa.'),
+('Impresoras y Escáneres', 'Reportes sobre mal funcionamiento o instalación.'),
+('Seguridad Informática', 'Reportes de vulnerabilidades, antivirus, o accesos no autorizados.');
