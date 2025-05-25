@@ -5,26 +5,41 @@
 <div class="login-container d-flex flex-column justify-content-center align-items-center">
     <img src="~/media/FIX.svg" alt="Logo" class="logo" />
 
-    <form class="w-100 d-flex flex-column gap-3">
-        <div class="position-relative">
-            <input type="email" class="form-control input-login" id="username" placeholder="Correo Electrónico">
-            <i class="bi bi-person-circle icon-input"></i>
+    <form class="w-100 d-flex flex-column gap-4" method="post" asp-controller="Auth" asp-action="Login">
+        <div>
+            <label class="form-label">Correo electrónico</label>
+            <div class="position-relative">
+                <input type="email"
+                       class="form-control input-login"
+                       id="email"
+                       name="Email"
+                       placeholder="sam.torres@nexus.com"
+                       required>
+                <i class="bi bi-envelope icon-input"></i>
+            </div>
         </div>
 
-        <div class="position-relative">
-            <input type="password" class="form-control input-login" id="password" placeholder="Contraseña">
-            <i class="bi bi-lock-fill icon-input"></i>
-            <i class="bi bi-eye-slash toggle-password" id="togglePassword"></i>
+        <div>
+            <label class="form-label">Contraseña</label>
+            <div class="position-relative">
+                <input type="password"
+                       class="form-control input-login"
+                       id="password"
+                       name="Password"
+                       placeholder="••••••••••••••••••••••••"
+                       required>
+                <i class="bi bi-lock-fill icon-input"></i>
+                <i class="bi bi-eye-slash toggle-password" id="togglePassword"></i>
+            </div>
+        </div>
+
+        <div class="forgot-password">
+            <a href="#" class="forgot-link">Olvidó su contraseña</a>
         </div>
 
         <button type="submit" class="btn w-100 mt-2">Iniciar Sesión</button>
     </form>
 </div>
-
-<div class="bottom-link">
-    ¿Nuevo aquí? <a asp-controller="Auth" asp-action="Register">Crea una cuenta</a>
-</div>
-
 
 <style>
     body {
@@ -32,39 +47,61 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        min-height: 100dvh; /* Mejor soporte en móviles */
-        background-color: #fff4e9;
+        min-height: 100vh;
+        background-color: #f5f5f5;
         padding: 20px;
+        margin: 0;
     }
 
     .login-container {
         width: 100%;
-        max-width: 500px;
-        background-color: #4A6B96;
-        padding: 40px 30px;
+        max-width: 600px;
+        background-color: #2C3E50;
+        padding: 50px 40px;
         border-radius: 30px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
+    .logo {
+        width: 70%;
+        max-width: 250px;
+        margin-bottom: 30px;
+    }
+
+    .form-label {
+        display: block;
+        color: white;
+        font-size: 16px;
+        margin-bottom: 8px;
+        font-weight: normal;
+    }
+
     .input-login {
         width: 100%;
-        background-color: #D9D9D9;
+        background-color: #546E7A;
         border: none;
-        border-radius: 25px;
+        border-radius: 8px;
         padding-left: 50px;
-        height: 55px;
+        padding-right: 50px;
+        height: 60px;
         font-size: 16px;
-        color: black;
+        color: white;
+        margin-bottom: 15px;
     }
 
         .input-login:focus {
             outline: none;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+            background-color: #607D8B;
+        }
+
+        .input-login::placeholder {
+            color: rgba(255, 255, 255, 0.7);
         }
 
     .position-relative i.icon-input {
-        font-size: 1.3rem;
-        color: #000;
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.8);
         position: absolute;
         left: 15px;
         top: 50%;
@@ -72,8 +109,8 @@
     }
 
     .position-relative i.toggle-password {
-        font-size: 1.3rem;
-        color: #000;
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.8);
         position: absolute;
         right: 15px;
         top: 50%;
@@ -81,33 +118,36 @@
         cursor: pointer;
     }
 
-    .logo {
-        width: 60%;
-        max-width: 200px;
-        margin-bottom: 20px;
-    }
-
     .btn {
-        background-color: #D9D9D9;
-        height: 55px;
-        border-radius: 25px;
+        background-color: #ECF15E;
+        height: 60px;
+        border-radius: 8px;
+        border: none;
+        color: black;
+        font-weight: bold;
+        font-size: 16px;
     }
 
         .btn:hover {
             outline: none;
-            background-color: white;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            background-color: #E8ED55;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
         }
 
-    .bottom-link {
-        margin-top: 15px;
-        font-size: 18px;
+    .forgot-password {
+        text-align: right;
+        margin-top: 10px;
+        margin-bottom: 20px;
     }
 
-        .bottom-link a {
-            margin-left: 10px;
-            text-decoration: none;
-            color: #0d6efd;
+    .forgot-link {
+        color: #ECF15E;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+        .forgot-link:hover {
+            text-decoration: underline;
         }
 </style>
 
@@ -115,7 +155,6 @@
     document.getElementById("togglePassword").addEventListener("click", function () {
         const passwordInput = document.getElementById("password");
         const icon = this;
-
         if (passwordInput.type === "password") {
             passwordInput.type = "text";
             icon.classList.remove("bi-eye-slash");
