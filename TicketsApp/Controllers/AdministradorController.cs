@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using BCrypt.Net;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using TicketsApp.Models;
 using TicketsApp.Models.ViewModels;
-using BCrypt.Net;
-using System.Linq;
 
 namespace TicketsApp.Controllers
 {
+    [Authorize(Roles = "Administrador")]
     public class AdministradorController : Controller
     {
         private readonly ApplicationDbContext _context;

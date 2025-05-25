@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TicketsApp.Controllers
 {
-    //[Authorize(Roles = "Cliente")]
+    [Authorize(Roles = "Cliente")]
     public class ClienteController : Controller
     {
-        public IActionResult Tickets()
+        public IActionResult Index()
         {
             return View();
         }
