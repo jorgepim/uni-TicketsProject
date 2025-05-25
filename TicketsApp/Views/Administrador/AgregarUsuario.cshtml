@@ -1,0 +1,405 @@
+﻿@model TicketsApp.Models.ViewModels.AgregarUsuarioViewModel
+@{
+    ViewData["Title"] = "Agregar Usuario";
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    .form-container {
+       /*  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+
+    .form-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .form-header {
+        /*  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); */
+        /* background: linear-gradient(135deg, #2C3E50 20%, #A3A914 90%); */
+        background-color: #3B4C63;
+        color: white;
+        padding: 2rem;
+        border-radius: 20px 20px 0 0;
+        text-align: center;
+    }
+
+    .form-body {
+        padding: 2rem;
+    }
+
+    .floating-label {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+        .floating-label input,
+        .floating-label select {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.9);
+        }
+
+            .floating-label input:focus,
+            .floating-label select:focus {
+                outline: none;
+                border-color: #4f46e5;
+                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+                transform: translateY(-2px);
+            }
+
+        .floating-label label {
+            position: absolute;
+            left: 3rem;
+            top: 1rem;
+            color: #6b7280;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            font-weight: 500;
+        }
+
+        .floating-label input:focus + label,
+        .floating-label input:valid + label,
+        .floating-label select:focus + label,
+        .floating-label select:valid + label {
+            top: -0.5rem;
+            left: 1rem;
+            background: white;
+            padding: 0 0.5rem;
+            font-size: 0.875rem;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+
+    .input-icon {
+        position: absolute;
+        left: 1rem;
+        top: 1rem;
+        color: #6b7280;
+        z-index: 1;
+    }
+
+    .categoria-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .categoria-card {
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background: rgba(255,255,255,0.9);
+    }
+
+        .categoria-card:hover {
+            border-color: #4f46e5;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.15);
+        }
+
+        .categoria-card.selected {
+            border-color: #4f46e5;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(124, 58, 237, 0.1));
+        }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+        }
+
+    .btn-secondary {
+        background: #6b7280;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+
+    .alert-danger {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #dc2626;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .text-danger {
+        color: #dc2626 !important;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    #empresaSection {
+        display: none;
+    }
+</style>
+
+<div class="form-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="form-card">
+                    <div class="form-header">
+                        <h2><i class="fas fa-user-plus me-3"></i>Agregar Nuevo Usuario</h2>
+                        <p class="mb-0">Complete todos los campos para crear un nuevo usuario</p>
+                    </div>
+
+                    <div class="form-body">
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Se encontraron los siguientes errores:</strong>
+                                <ul class="mb-0 mt-2">
+                                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                    {
+                                        <li>@error.ErrorMessage</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+
+                        <form asp-action="AgregarUsuario" method="post">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="floating-label">
+                                        <i class="fas fa-user input-icon"></i>
+                                        <input asp-for="Nombre" type="text" required />
+                                        <label asp-for="Nombre"></label>
+                                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="floating-label">
+                                        <i class="fas fa-user input-icon"></i>
+                                        <input asp-for="Apellido" type="text" required />
+                                        <label asp-for="Apellido"></label>
+                                        <span asp-validation-for="Apellido" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="floating-label">
+                                        <i class="fas fa-envelope input-icon"></i>
+                                        <input asp-for="Email" type="email" required />
+                                        <label asp-for="Email"></label>
+                                        <span asp-validation-for="Email" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="floating-label">
+                                        <i class="fas fa-phone input-icon"></i>
+                                        <input asp-for="Telefono" type="text" placeholder="####-####" required />
+                                        <label asp-for="Telefono"></label>
+                                        <span asp-validation-for="Telefono" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="floating-label">
+                                        <i class="fas fa-users input-icon"></i>
+                                        <select asp-for="TipoUsuario" asp-items="Model.TiposUsuario" required onchange="toggleEmpresa()" id="TipoUsuario">
+                                            <option value="">Seleccione...</option>
+                                        </select>
+                                        <label asp-for="TipoUsuario"></label>
+                                        <span asp-validation-for="TipoUsuario" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="floating-label">
+                                        <i class="fas fa-user-tag input-icon"></i>
+                                        <select asp-for="RolId" asp-items="Model.Roles" required id="rolSelect">
+                                            <option value="">Seleccione...</option>
+                                        </select>
+                                        <label asp-for="RolId"></label>
+                                        <span asp-validation-for="RolId" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row" id="empresaSection">
+                                <div class="col-12">
+                                    <div class="floating-label">
+                                        <i class="fas fa-building input-icon"></i>
+                                        <select asp-for="EmpresaId" asp-items="Model.Empresas">
+                                            <option value="">Seleccione una empresa...</option>
+                                        </select>
+                                        <label asp-for="EmpresaId"></label>
+                                        <span asp-validation-for="EmpresaId" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="floating-label">
+                                        <i class="fas fa-lock input-icon"></i>
+                                        <input asp-for="Contrasena" type="password" required />
+                                        <label asp-for="Contrasena"></label>
+                                        <span asp-validation-for="Contrasena" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="floating-label">
+                                        <i class="fas fa-lock input-icon"></i>
+                                        <input asp-for="ConfirmarContrasena" type="password" required />
+                                        <label asp-for="ConfirmarContrasena"></label>
+                                        <span asp-validation-for="ConfirmarContrasena" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <h5 class="mb-3"><i class="fas fa-tags me-2"></i>Categorías</h5>
+                                <p class="text-muted small mb-3">Seleccione al menos una categoría para el usuario</p>
+                                <div class="categoria-grid">
+                                    @for (int i = 0; i < Model.TodasCategorias.Count; i++)
+                                    {
+                                        <div class="categoria-card" onclick="toggleCategoria(@Model.TodasCategorias[i].CategoriaId, this)">
+                                            <input type="checkbox" name="CategoriasSeleccionadas" value="@Model.TodasCategorias[i].CategoriaId" style="display:none;" />
+                                            <h6 class="mb-2">
+                                                <i class="fas fa-tag me-2"></i>@Model.TodasCategorias[i].Nombre
+                                            </h6>
+                                            <p class="text-muted mb-0 small">@Model.TodasCategorias[i].Descripcion</p>
+                                        </div>
+                                    }
+                                </div>
+                                <span asp-validation-for="CategoriasSeleccionadas" class="text-danger d-block mt-2"></span>
+                            </div>
+
+                            <div class="d-flex gap-3 justify-content-end">
+                                <a href="@Url.Action("Index")" class="btn btn-secondary">
+                                    <i class="fas fa-times me-2"></i>Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Agregar Usuario
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleEmpresa() {
+        const tipoUsuario = document.getElementById('TipoUsuario').value;
+        const empresaSection = document.getElementById('empresaSection');
+        const rolSelect = document.getElementById('rolSelect');
+
+        if (tipoUsuario === 'Externo') {
+            empresaSection.style.display = 'block';
+            // Filtrar roles para excluir Admin
+            filterRolesByTipo('Externo');
+        } else {
+            empresaSection.style.display = 'none';
+            // Mostrar todos los roles
+            filterRolesByTipo('Interno');
+        }
+    }
+
+    function filterRolesByTipo(tipoUsuario) {
+        fetch(`/Administrador/GetRolesByTipo?tipoUsuario=${tipoUsuario}`)
+            .then(response => response.json())
+            .then(roles => {
+                const rolSelect = document.getElementById('rolSelect');
+                const currentValue = rolSelect.value;
+
+                // Limpiar opciones existentes
+                rolSelect.innerHTML = '<option value="">Seleccione...</option>';
+
+                // Agregar nuevas opciones
+                roles.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role.value;
+                    option.textContent = role.text;
+                    if (role.value == currentValue) {
+                        option.selected = true;
+                    }
+                    rolSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function toggleCategoria(categoriaId, element) {
+        const checkbox = element.querySelector('input[type="checkbox"]');
+        checkbox.checked = !checkbox.checked;
+
+        if (checkbox.checked) {
+            element.classList.add('selected');
+        } else {
+            element.classList.remove('selected');
+        }
+    }
+
+    // Inicializar cuando carga la página
+    document.addEventListener('DOMContentLoaded', function() {
+        // Manejar categorías preseleccionadas
+        const checkboxes = document.querySelectorAll('input[name="CategoriasSeleccionadas"]:checked');
+        checkboxes.forEach(checkbox => {
+            checkbox.closest('.categoria-card').classList.add('selected');
+        });
+
+        // Configurar validación de teléfono
+        const telefonoInput = document.getElementById('Telefono');
+        if (telefonoInput) {
+            telefonoInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length >= 4) {
+                    value = value.substring(0, 4) + '-' + value.substring(4, 8);
+                }
+                e.target.value = value;
+            });
+        }
+    });
+</script>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

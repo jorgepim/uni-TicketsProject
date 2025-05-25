@@ -10,7 +10,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Connection")));
 
 //Login
-builder.Services.AddDistributedMemoryCache();
+/*builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -18,9 +18,9 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.Name = ".TicketsApp.Session";
 });
-
-// Configuración de Autenticación por Cookies (Login)
-builder.Services.AddAuthentication("Cookies")
+*/
+// Configuraciï¿½n de Autenticaciï¿½n por Cookies (Login)
+/*builder.Services.AddAuthentication("Cookies")
     .AddCookie(options =>
     {
         options.LoginPath = "/Auth/Login";
@@ -29,7 +29,7 @@ builder.Services.AddAuthentication("Cookies")
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
     });
 
-
+*/
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -45,11 +45,11 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseAuthentication(); // ?? Debe estar antes de Authorization
+//app.UseAuthentication(); // ?? Debe estar antes de Authorization
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Auth}/{action=Login}/{id?}");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

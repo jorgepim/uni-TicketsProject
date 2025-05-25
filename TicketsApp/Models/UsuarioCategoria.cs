@@ -1,5 +1,8 @@
-﻿namespace TicketsApp.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace TicketsApp.Models
 {
+    [Table("Usuarios_Categorias")]
     public class UsuarioCategoria
     {
         public int UsuarioId { get; set; }

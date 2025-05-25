@@ -42,6 +42,8 @@ namespace TicketsApp.Models
                 .WithMany()
                 .HasForeignKey(uc => uc.CategoriaId);
 
+
+
             // Configuraciones adicionales si necesitás
             modelBuilder.Entity<Usuario>().Property(u => u.Estado).HasDefaultValue(true);
             modelBuilder.Entity<Notificacion>().Property(n => n.Leido).HasDefaultValue(false);

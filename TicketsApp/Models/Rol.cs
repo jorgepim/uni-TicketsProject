@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using System.ComponentModel.DataAnnotations;
 
 namespace TicketsApp.Models
 {
@@ -6,10 +7,13 @@ namespace TicketsApp.Models
     {
         [Key]
         public int RolId { get; set; }
+        
+        [Required(ErrorMessage = "Este campo es obligatorio")]
+        [MaxLength(20)]
+        [Display(Name = "Nombre")]
+        public string? NombreRol { get; set; }
 
-        [Required, MaxLength(50)]
-        public string NombreRol { get; set; }
-
-        public ICollection<Usuario> Usuarios { get; set; }
+        [ValidateNever]
+        public ICollection<Usuario>? Usuarios { get; set; }
     }
 }
