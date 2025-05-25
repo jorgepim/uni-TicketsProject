@@ -8,10 +8,10 @@ namespace TicketsApp.Models
         [Key, ForeignKey("Usuario")]
         public int UsuarioId { get; set; }
 
-        public Usuario Usuario { get; set; }
+        public Usuario? Usuario { get; set; }
 
-        public int EmpresaId { get; set; }
+        public int? EmpresaId { get; set; }
         [ForeignKey("EmpresaId")]
-        public EmpresaExterna Empresa { get; set; }
+        public EmpresaExterna? Empresa { get; set; }
     }
 }

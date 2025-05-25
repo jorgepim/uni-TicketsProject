@@ -8,17 +8,17 @@ namespace TicketsApp.Models
         public int EmpresaId { get; set; }
 
         [Required, MaxLength(100)]
-        public string NombreEmpresa { get; set; }
+        public string? NombreEmpresa { get; set; }
 
         [MaxLength(100)]
-        public string ContactoPrincipal { get; set; }
+        public string? ContactoPrincipal { get; set; }
 
         [MaxLength(20)]
-        public string TelefonoEmpresa { get; set; }
+        public string? TelefonoEmpresa { get; set; }
 
         [MaxLength(200)]
-        public string DireccionEmpresa { get; set; }
+        public string? DireccionEmpresa { get; set; }
 
-        public ICollection<ClienteExterno> Clientes { get; set; }
+        public ICollection<ClienteExterno>? Clientes { get; set; }
     }
 }

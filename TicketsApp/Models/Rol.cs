@@ -8,8 +8,8 @@ namespace TicketsApp.Models
         public int RolId { get; set; }
 
         [Required, MaxLength(50)]
-        public string NombreRol { get; set; }
+        public string? NombreRol { get; set; }
 
-        public ICollection<Usuario> Usuarios { get; set; }
+        public ICollection<Usuario>? Usuarios { get; set; }
     }
 }
