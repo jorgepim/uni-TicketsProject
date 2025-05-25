@@ -7,7 +7,7 @@ USE TicketDb;
 
 -- Tabla Roles
 CREATE TABLE Roles (
-    RolId INT PRIMARY KEY,
+    RolId INT PRIMARY KEY IDENTITY,
     NombreRol VARCHAR(50) UNIQUE
 );
 
@@ -154,3 +154,8 @@ CREATE TABLE Notificaciones (
     FOREIGN KEY (UsuarioId) REFERENCES Usuarios(UsuarioId),
     FOREIGN KEY (TicketId) REFERENCES Tickets(TicketId)
 );
+
+
+select *from Roles;
+
+insert Into Roles (NombreRol) values ('Administrador'),('Tecnico'),('Cliente');

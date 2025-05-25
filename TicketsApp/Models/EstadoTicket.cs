@@ -8,6 +8,6 @@ namespace TicketsApp.Models
         public int EstadoId { get; set; }
 
         [Required, MaxLength(50)]
-        public string NombreEstado { get; set; }
+        public string? NombreEstado { get; set; }
     }
 }

@@ -1,47 +1,70 @@
-﻿@{
+﻿@model TicketsApp.Models.ViewModels.RegisterViewModel
+@{
     Layout = "~/Views/Shared/_LayoutLogin.cshtml";
 }
 
 <div class="register-container">
     <img src="~/media/FIXAzul.svg" alt="Logo" class="logo">
 
-    <form class="row g-3">
+    <form asp-action="Register" method="post" class="row g-3">
         <div class="col-md-6 input-group-custom">
-            <input type="text" class="input-register" placeholder="Nombre">
+            <input asp-for="Nombre" class="input-register" placeholder="Nombre" />
             <i class="bi bi-person icon-input"></i>
+            <span asp-validation-for="Nombre" class="text-danger"></span>
         </div>
         <div class="col-md-6 input-group-custom">
-            <input type="text" class="input-register" placeholder="Apellido">
+            <input asp-for="Apellido" class="input-register" placeholder="Apellido" />
             <i class="bi bi-person icon-input"></i>
+            <span asp-validation-for="Apellido" class="text-danger"></span>
         </div>
         <div class="col-12 input-group-custom">
-            <input type="email" class="input-register" placeholder="Correo Electrónico">
+            <input asp-for="Email" class="input-register" placeholder="Correo Electrónico" />
             <i class="bi bi-envelope icon-input"></i>
+            <span asp-validation-for="Email" class="text-danger"></span>
         </div>
         <div class="col-12 input-group-custom">
-            <input type="tel" class="input-register" placeholder="Teléfono">
+            <input asp-for="Telefono" class="input-register" placeholder="Teléfono" />
             <i class="bi bi-telephone icon-input"></i>
+            <span asp-validation-for="Telefono" class="text-danger"></span>
         </div>
         <div class="col-md-6 input-group-custom">
-            <input type="password" class="input-register" id="password" placeholder="Contraseña">
+            <input asp-for="Password" class="input-register" placeholder="Contraseña" type="password" id="password" />
             <i class="bi bi-lock-fill icon-input"></i>
             <i class="bi bi-eye-slash toggle-password" toggle="#password"></i>
+            <span asp-validation-for="Password" class="text-danger"></span>
         </div>
         <div class="col-md-6 input-group-custom">
-            <input type="password" class="input-register" id="confirm-password" placeholder="Confirmar Contraseña">
+            <input asp-for="ConfirmPassword" class="input-register" placeholder="Confirmar Contraseña" type="password" id="confirm-password" />
             <i class="bi bi-lock-fill icon-input"></i>
             <i class="bi bi-eye-slash toggle-password" toggle="#confirm-password"></i>
+            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
         </div>
 
         <div class="col-12">
             <button type="submit" class="btn btn-register">Registrarse</button>
         </div>
     </form>
-
 </div>
+
 <div class="bottom-text">
     <strong>¿Posees una cuenta?</strong> <a asp-controller="Auth" asp-action="Login">Iniciar Sesión</a>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll(".toggle-password").forEach(function (icon) {
+            icon.addEventListener("click", function () {
+                const input = document.querySelector(this.getAttribute("toggle"));
+                const type = input.getAttribute("type") === "password" ? "text" : "password";
+                input.setAttribute("type", type);
+                this.classList.toggle("bi-eye");
+                this.classList.toggle("bi-eye-slash");
+            });
+        });
+    </script>
+}
+
 <style>
     body {
         min-height: 100dvh;
@@ -141,6 +164,7 @@
         }
     }
 </style>
+
 
 <script>
     document.querySelectorAll(".toggle-password").forEach(function (icon) {
