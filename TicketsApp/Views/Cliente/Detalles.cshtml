@@ -1,0 +1,140 @@
+﻿@model TicketsApp.Models.Ticket
+
+@{
+    ViewData["Title"] = "Detalle del Ticket";
+
+    var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+    if (rol == "Administrador")
+    {
+        Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    }
+    else if (rol == "Cliente")
+    {
+        Layout = "~/Views/Shared/_LayoutCliente.cshtml";
+    }
+    else if (rol == "Tecnico")
+    {
+        Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
+    }
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<style>
+    body {
+        background-color: #fef4ea;
+    }
+
+    .ticket-detail-container {
+        background-color: #d9d9d9;
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 2rem auto;
+        max-width: 850px;
+        box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+
+        .ticket-detail-container h4 {
+            color: #3b5b8d;
+            font-weight: bold;
+        }
+
+        .ticket-detail-container label {
+            color: #3b5b8d;
+            font-weight: 500;
+        }
+
+    .form-control[disabled],
+    textarea[disabled] {
+        background-color: #f5f5f5;
+        color: #555;
+    }
+
+    .list-group-item {
+        background-color: #f9f9f9;
+        border: none;
+    }
+
+    .btn-volver {
+        background-color: #3b5b8d;
+        color: white;
+        border-radius: 8px;
+    }
+
+        .btn-volver:hover {
+            background-color: #2f4b7c;
+            color: white;
+        }
+
+    .icon-label {
+        margin-right: 0.5rem;
+        color: #3b5b8d;
+    }
+</style>
+
+<div class="ticket-detail-container">
+    <h4 class="mb-4"><i class="fas fa-ticket-alt icon-label"></i>Detalle del Ticket</h4>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <label><i class="fas fa-folder icon-label"></i>Categoría</label>
+            <input class="form-control" disabled value="@Model.Categoria?.Nombre" />
+        </div>
+
+        <div class="col-md-6">
+            <label><i class="fas fa-exclamation-triangle icon-label"></i>Prioridad</label>
+            <input class="form-control" disabled value="@Model.Prioridad" />
+        </div>
+
+        <div class="col-12">
+            <label><i class="fas fa-heading icon-label"></i>Título del Ticket</label>
+            <input class="form-control" disabled value="@Model.Titulo" />
+        </div>
+
+        <div class="col-12">
+            <label><i class="fas fa-desktop icon-label"></i>Aplicación Afectada</label>
+            <input class="form-control" disabled value="@Model.AplicacionAfectada" />
+        </div>
+
+        <div class="col-12">
+            <label><i class="fas fa-align-left icon-label"></i>Descripción del Problema</label>
+            <textarea class="form-control" disabled style="height: 120px">@Model.Descripcion</textarea>
+        </div>
+
+        <div class="col-md-6">
+            <label><i class="fas fa-clipboard-check icon-label"></i>Estado</label>
+            <input class="form-control" disabled value="@Model.Estado?.NombreEstado" />
+        </div>
+
+        <div class="col-md-6">
+            <label><i class="fas fa-calendar-alt icon-label"></i>Fecha de Creación</label>
+            <input class="form-control" disabled value="@Model.FechaCreacion?.ToString("dd/MM/yyyy")" />
+        </div>
+
+        @if (Model.Adjuntos != null && Model.Adjuntos.Any())
+        {
+            <div class="col-12">
+                <label><i class="fas fa-paperclip icon-label"></i>Archivos Adjuntos:</label>
+                <ul class="list-group mt-2">
+                    @foreach (var adjunto in Model.Adjuntos)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>@adjunto.NombreArchivo</span>
+                            <a href="@Url.Content($"~/Adjuntos/{adjunto.RutaArchivo}")" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download me-1"></i>Descargar
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+
+    <div class="mt-5 text-end">
+        <a asp-action="VerTickets" class="btn btn-volver">
+            <i class="fas fa-arrow-left me-2"></i>Volver a lista
+        </a>
+    </div>
+</div>

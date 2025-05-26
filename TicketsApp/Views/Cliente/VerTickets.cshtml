@@ -1,0 +1,119 @@
+﻿@model List<TicketsApp.Models.Ticket>
+
+@{
+    ViewData["Title"] = "Tickets Enviados";
+    Layout = "~/Views/Shared/_LayoutCliente.cshtml";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
+<style>
+    .ticket-container {
+        background-color: #d9d9d9;
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 800px;
+        margin: 2rem auto;
+    }
+
+    .ticket-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-top: 1px solid #ccc;
+    }
+
+        .ticket-card:first-child {
+            border-top: none;
+        }
+
+    .ticket-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .ticket-icon {
+        font-size: 2rem;
+        color: #3b5b8d;
+    }
+
+    .ticket-text {
+        color: #3b5b8d;
+    }
+
+    .ticket-title {
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+
+    .btn-vermas {
+        background-color: #3b5b8d;
+        color: white;
+        border-radius: 10px;
+        padding: 6px 18px;
+        border: none;
+        text-decoration: none;
+    }
+
+        .btn-vermas:hover {
+            background-color: #2f4b7c;
+            color: white;
+        }
+
+    .btn-volver {
+        background-color: #3b5b8d;
+        color: white;
+        border-radius: 20px;
+        padding: 8px 20px;
+        border: none;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+        .btn-volver:hover {
+            background-color: #2f4b7c;
+            color: white;
+        }
+
+    .volver-top {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<div class="ticket-container">
+    <div class="volver-top">
+        <a asp-controller="Cliente" asp-action="Index" class="btn-volver">
+            <i class="fas fa-arrow-left me-2"></i>Volver al inicio
+        </a>
+    </div>
+
+    <h6 class="ticket-text mb-4">Tickets Enviados</h6>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">No has enviado ningún ticket.</div>
+    }
+    else
+    {
+        @foreach (var ticket in Model)
+        {
+            <div class="ticket-card">
+                <div class="ticket-info">
+                    <i class="bi bi-ticket-perforated-fill ticket-icon"></i>
+                    <div class="ticket-text">
+                        <div class="ticket-title">@ticket.Titulo</div>
+                        <div><small>Estado: @ticket.Estado?.NombreEstado</small></div>
+                        <div><small>Prioridad: @ticket.Prioridad</small></div>
+                        <div><small>Fecha: @ticket.FechaCreacion?.ToString("dd - MM - yyyy")</small></div>
+                    </div>
+                </div>
+                <a asp-controller="Cliente" asp-action="Detalles" asp-route-id="@ticket.TicketId" class="btn-vermas">Ver Más</a>
+            </div>
+        }
+    }
+</div>

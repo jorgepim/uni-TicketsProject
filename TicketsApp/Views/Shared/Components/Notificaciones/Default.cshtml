@@ -1,0 +1,24 @@
+﻿@model List<TicketsApp.Models.Notificacion>
+
+<li class="dropdown-header fw-bold text-primary">Notificaciones</li>
+
+@if (!Model.Any())
+{
+    <li><span class="dropdown-item-text text-muted">No hay notificaciones nuevas</span></li>
+}
+else
+{
+    @foreach (var noti in Model)
+    {
+        <li>
+            <span class="dropdown-item-text">
+                @noti.Mensaje
+                <br />
+                <small class="text-muted">@noti.FechaEnvio?.ToString("dd/MM/yyyy HH:mm")</small>
+            </span>
+        </li>
+    }
+}
+
+<li><hr class="dropdown-divider" /></li>
+<li><a class="dropdown-item text-center text-primary" href="/Notificaciones">Ver todas</a></li>
