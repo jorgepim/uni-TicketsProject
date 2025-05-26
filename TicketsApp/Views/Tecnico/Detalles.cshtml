@@ -24,7 +24,8 @@
 
 <div class="card p-3 mb-4">
     <h4>@Model.Titulo</h4>
-    <p><strong>Usuario Creador:</strong> @Model.NombreUsuarioCreador</p>
+    <p><strong>Creador:</strong> @Model.NombreUsuarioCreador</p>
+    <p><strong>Empresa:</strong> @Model.NombreEmpresa</p>
     <p><strong>Aplicación Afectada:</strong> @Model.AplicacionAfectada</p>
     <p><strong>Descripción:</strong> @Model.Descripcion</p>
     <p><strong>Categoría:</strong> @Model.Categoria.Nombre</p>
@@ -34,22 +35,25 @@
 </div>
 
 <!-- Cambiar Estado -->
-<form asp-action="CambiarEstado" asp-controller="Tecnico" method="post" class="mb-4">
-    <input type="hidden" name="ticketId" value="@Model.TicketId" />
-    <div class="form-group floating-label">
-        <select asp-for="EstadoId" asp-items="@(new SelectList((List<TicketsApp.Models.EstadoTicket>)ViewBag.Estados, "EstadoId", "NombreEstado", Model.EstadoId))" class="form-control" required id="estadoSelect">
-            <option value="">Seleccione un estado</option>
-        </select>
-        <label asp-for="EstadoId"></label>
-        <span asp-validation-for="EstadoId" class="text-danger"></span>
-    </div>
-    <button type="submit" class="btn btn-primary mt-2">Actualizar Estado</button>
+<div class="d-flex align-items-end gap-2 mb-4">
+    <!-- Formulario para Cambiar Estado -->
+    <form asp-action="CambiarEstado" asp-controller="Tecnico" method="post" class="mb-0">
+        <input type="hidden" name="ticketId" value="@Model.TicketId" />
+        <div class="form-group">
+            <select asp-for="EstadoId" asp-items="@(new SelectList((List<TicketsApp.Models.EstadoTicket>)ViewBag.Estados, "EstadoId", "NombreEstado", Model.EstadoId))" class="form-control" required id="estadoSelect">
+                <option value="">Seleccione un estado</option>
+            </select>
+            <span asp-validation-for="EstadoId" class="text-danger"></span>
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">Actualizar Estado</button>
+    </form>
 
-        <form asp-action="CerrarTicket" asp-controller="Tecnico" method="post" id="cerrarTicketForm">
-            <input type="hidden" name="ticketId" value="@Model.TicketId" />
-            <button type="button" class="btn btn-danger mt-4" onclick="confirmarCerrar()">Cerrar Ticket</button>
-        </form>
-</form>
+    <!-- Botón para Cerrar Ticket -->
+    <form asp-action="CerrarTicket" asp-controller="Tecnico" method="post" id="cerrarTicketForm" class="mb-0">
+        <input type="hidden" name="ticketId" value="@Model.TicketId" />
+        <button type="button" class="btn btn-danger mt-2" onclick="confirmarCerrar()">Cerrar Ticket</button>
+    </form>
+</div>
 
 
 <!-- Comentarios -->

@@ -24,7 +24,8 @@
 
 <div class="card p-3 mb-4">
     <h4>@Model.Titulo</h4>
-    <p><strong>Usuario Creador:</strong> @Model.NombreUsuarioCreador</p>
+    <p><strong>Creador:</strong> @Model.NombreUsuarioCreador</p>
+    <p><strong>Empresa:</strong> @Model.NombreEmpresa</p>
     <p><strong>Aplicación Afectada:</strong> @Model.AplicacionAfectada</p>
     <p><strong>Descripción:</strong> @Model.Descripcion</p>
     <p><strong>Categoría:</strong> @Model.Categoria.Nombre</p>
@@ -48,9 +49,9 @@
     </div>
 </div>
 
+
 <!-- Agregar Comentario -->
-<!-- Agregar Comentario -->
-@if (Model.Estado?.NombreEstado == "En Espera" || Model.Estado?.NombreEstado == "Abierto")
+@if (Model.Estado?.NombreEstado != "Resuelto" && Model.Estado?.NombreEstado != "Cerrado")
 {
     <form asp-action="AgregarComentario2" asp-controller="Tecnico" method="post">
         <input type="hidden" name="ticketId" value="@Model.TicketId" />
@@ -90,8 +91,7 @@ else
         }
 
         <!-- Subir nuevos -->
-        <!-- Subir nuevos -->
-        @if (Model.Estado?.NombreEstado == "En Espera" || Model.Estado?.NombreEstado == "Abierto")
+        @if (Model.Estado?.NombreEstado != "Resuelto" && Model.Estado?.NombreEstado != "Cerrado")
         {
             <form asp-action="SubirAdjunto2" asp-controller="Tecnico" method="post" enctype="multipart/form-data" class="mt-3">
                 <input type="hidden" name="ticketId" value="@Model.TicketId" />

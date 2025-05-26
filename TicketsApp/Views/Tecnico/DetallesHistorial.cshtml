@@ -12,6 +12,8 @@
         <h5>@Model.Titulo</h5>
     </div>
     <div class="card-body">
+        <p><strong>Creador:</strong> @Model.UsuarioCreador?.Nombre</p>
+        <p><strong>Empresa:</strong> @ViewBag.NombreEmpresa</p>
         <p><strong>Categoría:</strong> @Model.Categoria.Nombre</p>
         <p><strong>Estado:</strong> @Model.Estado?.NombreEstado</p>
         <p><strong>Prioridad:</strong> @Model.Prioridad</p>
