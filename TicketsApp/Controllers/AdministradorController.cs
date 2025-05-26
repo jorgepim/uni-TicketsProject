@@ -53,10 +53,19 @@ namespace TicketsApp.Controllers
             }
 
             // Validación: Debe tener al menos una categoría
-            if (model.CategoriasSeleccionadas == null || !model.CategoriasSeleccionadas.Any())
+            // Validación: Solo si es Interno y Técnico, debe seleccionar al menos una categoría
+            if (model.TipoUsuario == "Interno")
             {
-                ModelState.AddModelError("CategoriasSeleccionadas", "Debe seleccionar al menos una categoría");
+                var rol = await _context.Roles.FirstOrDefaultAsync(r => r.RolId == model.RolId);
+                if (rol != null && rol.NombreRol == "Tecnico")
+                {
+                    if (model.CategoriasSeleccionadas == null || !model.CategoriasSeleccionadas.Any())
+                    {
+                        ModelState.AddModelError("CategoriasSeleccionadas", "Debe seleccionar al menos una categoría");
+                    }
+                }
             }
+
 
             // Verificar que el email no exista
             var emailExiste = await _context.Usuarios.AnyAsync(u => u.Email == model.Email);
