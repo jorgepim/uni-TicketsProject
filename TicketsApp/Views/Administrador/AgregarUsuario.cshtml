@@ -176,8 +176,6 @@
         color: rgba(255, 255, 255, 0.5);
     }
 
-
-
 </style>
 
 <div class="form-container">
@@ -191,6 +189,7 @@
                     </div>
 
                     <div class="form-body">
+
                         @if (!ViewData.ModelState.IsValid)
                         {
                             <div class="alert alert-danger">
@@ -274,8 +273,9 @@
                                 <div class="col-12">
                                     <div class="floating-label">
                                         <i class="fas fa-building input-icon"></i>
-                                        <select asp-for="EmpresaId" asp-items="Model.Empresas">
-                                            <option value="" >Seleccione una empresa...</option>
+                                        <select asp-for="EmpresaId" asp-items="Model.Empresas" id="empresaSelect">
+                                            <option value="">Seleccione una empresa...</option>
+                                            <option value="otra">Otra</option>
                                         </select>
                                         <label asp-for="EmpresaId"></label>
                                         <span asp-validation-for="EmpresaId" class="text-danger"></span>
@@ -306,6 +306,7 @@
                             <div class="mb-4" id="categoriasSection" style="display: none;">
                                 <h5 class="mb-3"><i class="fas fa-tags me-2"></i>Categorías</h5>
                                 <p class="text-muted small mb-3">Seleccione al menos una categoría para el usuario</p>
+                                <input type="hidden" name="CategoriasSeleccionadas" value=0 />
                                 <div class="categoria-grid">
                                     @for (int i = 0; i < Model.TodasCategorias.Count; i++)
                                     {
@@ -337,7 +338,102 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalEmpresa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formNuevaEmpresa">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar Nueva Empresa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Empresa</label>
+                        <input type="text" name="NombreEmpresa" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contacto Principal</label>
+                        <input type="text" name="ContactoPrincipal" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" name="TelefonoEmpresa" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dirección</label>
+                        <textarea name="DireccionEmpresa" class="form-control" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+
+        document.addEventListener('DOMContentLoaded', function () {
+        const empresaSelect = document.getElementById('empresaSelect');
+
+        empresaSelect.addEventListener('change', function () {
+            if (this.value === "otra") {
+                const modal = new bootstrap.Modal(document.getElementById('modalEmpresa'));
+                modal.show();
+            }
+        });
+
+        document.getElementById('formNuevaEmpresa').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const form = this;
+            const formData = new FormData(form);
+
+                  const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+    fetch('/EmpresaExternas/Create', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'RequestVerificationToken': token, // Este es el header que reconoce ASP.NET Core
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+
+    .then(async response => {
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error("Servidor respondió con error:\n" + errorText);
+        }
+        return response.json();
+    })
+    .then(data => {
+        const nuevaOpcion = new Option(data.nombre, data.id, true, true);
+        const empresaSelect = document.getElementById('empresaSelect');
+        empresaSelect.add(nuevaOpcion);
+        bootstrap.Modal.getInstance(document.getElementById('modalEmpresa')).hide();
+    })
+    .catch(err => {
+        console.error("🚨 Error real recibido:", err.message);
+        alert('Ocurrió un error al guardar la empresa:\n' + err.message);
+    });
+
+        });
+    });
+
+
+
+
+
+
+
+
+
+
+
     function toggleEmpresa() {
         const tipoUsuario = document.getElementById('TipoUsuario').value;
         const empresaSection = document.getElementById('empresaSection');

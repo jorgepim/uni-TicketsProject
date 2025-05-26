@@ -48,7 +48,6 @@ namespace TicketsApp.Models.ViewModels
         public int? EmpresaId { get; set; }
 
         [Display(Name = "Categorías")]
-        [MinLength(1, ErrorMessage = "Debe seleccionar al menos una categoría")]
         public List<int> CategoriasSeleccionadas { get; set; } = new List<int>();
 
         // Propiedades para los dropdowns

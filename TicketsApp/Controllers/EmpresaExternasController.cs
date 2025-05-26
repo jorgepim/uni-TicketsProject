@@ -54,17 +54,29 @@ namespace TicketsApp.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Create([Bind("EmpresaId,NombreEmpresa,ContactoPrincipal,TelefonoEmpresa,DireccionEmpresa")] EmpresaExterna empresaExterna)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                _context.Add(empresaExterna);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var errores = string.Join(" | ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+
+                return BadRequest("Error de validación del modelo: " + errores);
             }
-            return View(empresaExterna);
+
+            _context.Add(empresaExterna);
+            await _context.SaveChangesAsync();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return Json(new { id = empresaExterna.EmpresaId, nombre = empresaExterna.NombreEmpresa });
+            }
+
+            return RedirectToAction(nameof(Index));
         }
+
 
         // GET: EmpresaExternas/Edit/5
         public async Task<IActionResult> Edit(int? id)
