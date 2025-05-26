@@ -30,6 +30,8 @@ namespace TicketsApp.Controllers
             return View();
         }
 
+
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(CrearTicketViewModel model, string returnUrl = null)
@@ -60,6 +62,18 @@ namespace TicketsApp.Controllers
                     };
 
                     _context.Tickets.Add(ticket);
+                    await _context.SaveChangesAsync();
+
+                    // ⬇️ Crear notificación para el cliente (usuario que creó el ticket)
+                    var notificacion = new Notificacion
+                    {
+                        UsuarioId = usuarioId,
+                        TicketId = ticket.TicketId,
+                        Mensaje = $"Nuevo Ticket: {ticket.Titulo}",
+                        FechaEnvio = DateTime.Now,
+                        Leido = false
+                    };
+                    _context.Notificaciones.Add(notificacion);
                     await _context.SaveChangesAsync();
 
                     // Agregar comentario si existe
@@ -100,11 +114,25 @@ namespace TicketsApp.Controllers
 
                     await transaction.CommitAsync();
 
+                    var rolUsuario = User.FindFirst(ClaimTypes.Role)?.Value;
                     var successMessage = $"Ticket #{ticket.TicketId} creado exitosamente.";
 
-                    string redirectUrl = !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
-                        ? returnUrl
-                        : Url.Action("Index", "Home");
+                    string redirectUrl;
+
+                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    {
+                        redirectUrl = returnUrl;
+                    }
+                    else
+                    {
+                        redirectUrl = rolUsuario switch
+                        {
+                            "Administrador" => Url.Action("Index", "Administrador"),
+                            "Técnico" => Url.Action("Index", "Tecnico"),
+                            "Cliente" => Url.Action("Index", "Cliente"),
+                            _ => Url.Action("Login", "Auth")
+                        };
+                    }
 
                     return Json(new { success = true, message = successMessage, redirectUrl = redirectUrl });
                 }
@@ -120,6 +148,7 @@ namespace TicketsApp.Controllers
             ViewBag.ReturnUrl = returnUrl;
             return View(model);
         }
+
 
         private int GetCurrentUserId()
         {

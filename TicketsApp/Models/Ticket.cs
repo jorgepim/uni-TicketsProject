@@ -34,5 +34,10 @@ namespace TicketsApp.Models
         public DateTime? FechaCreacion { get; set; } = DateTime.Now;
 
         public DateTime? FechaCierre { get; set; }
+
+        public ICollection<Adjunto>? Adjuntos { get; set; }
+
+
+        public ICollection<ComentariosTicket>? Comentarios { get; set; }
     }
 }

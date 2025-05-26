@@ -59,10 +59,17 @@ namespace TicketsApp.Controllers
                 ModelState.AddModelError("EmpresaId", "Debe seleccionar una empresa para usuarios externos");
             }
 
-            // Validación: Debe tener al menos una categoría
-            if (model.CategoriasSeleccionadas == null || !model.CategoriasSeleccionadas.Any())
+            // Validación: Categorías obligatorias solo si el rol es Técnico e Interno
+            if (model.TipoUsuario == "Interno" && model.RolId > 0)
             {
-                ModelState.AddModelError("CategoriasSeleccionadas", "Debe seleccionar al menos una categoría");
+                var rol = await _context.Roles.FindAsync(model.RolId);
+                if (rol != null && rol.NombreRol == "Tecnico")
+                {
+                    if (model.CategoriasSeleccionadas == null || !model.CategoriasSeleccionadas.Any())
+                    {
+                        ModelState.AddModelError("CategoriasSeleccionadas", "Debe seleccionar al menos una categoría para el Técnico.");
+                    }
+                }
             }
 
             // Verificar que el email no exista
@@ -170,6 +177,14 @@ namespace TicketsApp.Controllers
                     };
                     _context.ClientesExternos.Add(clienteExterno);
                 }
+
+
+
+
+
+
+
+
 
                 // Agregar las categorías seleccionadas
                 foreach (var categoriaId in model.CategoriasSeleccionadas)

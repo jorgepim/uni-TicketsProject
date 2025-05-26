@@ -2,7 +2,26 @@
 
 @{
     ViewData["Title"] = "Crear Nuevo Ticket";
-    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+
+    var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+    if (rol == "Administrador")
+    {
+        Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    }
+    else if (rol == "Cliente")
+    {
+
+        Layout = "~/Views/Shared/_LayoutCliente.cshtml";
+    }
+    else if (rol == "Tecnico")
+    {
+
+        Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
+    }
+
+
+
 }
 
 <!-- Font Awesome CSS -->
