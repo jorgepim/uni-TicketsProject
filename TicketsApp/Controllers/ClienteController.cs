@@ -54,7 +54,7 @@ namespace TicketsApp.Controllers
             var ticket = await _context.Tickets
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
-                .Include(t => t.Adjuntos)
+                .Include(t => t.Adjunto)
                 .FirstOrDefaultAsync(t => t.TicketId == id);
 
             if (ticket == null)

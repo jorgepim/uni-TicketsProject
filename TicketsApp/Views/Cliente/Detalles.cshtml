@@ -113,12 +113,12 @@
             <input class="form-control" disabled value="@Model.FechaCreacion?.ToString("dd/MM/yyyy")" />
         </div>
 
-        @if (Model.Adjuntos != null && Model.Adjuntos.Any())
+        @if (Model.Adjunto != null && Model.Adjunto.Any())
         {
             <div class="col-12">
                 <label><i class="fas fa-paperclip icon-label"></i>Archivos Adjuntos:</label>
                 <ul class="list-group mt-2">
-                    @foreach (var adjunto in Model.Adjuntos)
+                    @foreach (var adjunto in Model.Adjunto)
                     {
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span>@adjunto.NombreArchivo</span>
