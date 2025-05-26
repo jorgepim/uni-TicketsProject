@@ -1,0 +1,84 @@
+﻿@model List<TicketsApp.Models.ViewModels.TecnicoPanelViewModel>
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@{
+    ViewData["Title"] = "Panel Administrador";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    var request = HttpContextAccessor.HttpContext.Request;
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="fw-bold">Equipo Técnico</h5>
+            <small class="text-muted">Listado de técnicos y su carga de trabajo actual</small>
+        </div>
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="busqueda" value="@request.Query["busqueda"]" class="form-control form-control-sm" placeholder="Buscar técnico..." />
+            <select name="area" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="Todas" selected="@(string.IsNullOrWhiteSpace(request.Query["area"]) || request.Query["area"] == "Todas" ? "selected" : null)">Todas</option>
+                @foreach (var area in Model.SelectMany(t => t.Areas).Distinct())
+                {
+                    <option value="@area" selected="@(request.Query["area"] == area ? "selected" : null)">@area</option>
+                }
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
+        </form>
+    </div>
+</div>
+
+<table class="table align-middle">
+    <thead class="table-light">
+        <tr>
+            <th>TÉCNICO</th>
+            <th>ÁREA</th>
+            <th>TICKETS ASIGNADOS</th>
+            <th>TICKETS RESUELTOS</th>
+            <th>RENDIMIENTO</th>
+            <th>ACCIONES</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var tecnico in Model)
+        {
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center" style="width: 35px; height: 35px;">
+                            @(tecnico.Nombre[0])@(tecnico.Apellido[0])
+                        </div>
+                        <div class="ms-2">
+                            <div class="fw-bold">@tecnico.Nombre @tecnico.Apellido</div>
+                            <div class="text-muted small">@tecnico.Email</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    @foreach (var area in tecnico.Areas)
+                    {
+                        <span class="badge bg-info me-1">@area</span>
+                    }
+                </td>
+                <td>@tecnico.TicketsAsignados</td>
+                <td>@tecnico.TicketsResueltos</td>
+                <td>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar @(tecnico.Rendimiento >= 80 ? "bg-success" : tecnico.Rendimiento >= 60 ? "bg-warning" : "bg-danger")" style="width: @tecnico.Rendimiento%"></div>
+                    </div>
+                    <small class="text-muted">@tecnico.Rendimiento%</small>
+                </td>
+                <td>
+                    <a href="@Url.Action("PerfilTecnico", "Administrador", new { id = tecnico.UsuarioId })" class="link-primary">Ver perfil</a>
+
+                    |
+                    <a href="@Url.Action("Tickets", "Usuarios", new { id = tecnico.UsuarioId })" class="link-secondary">Ver tickets</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="d-flex justify-content-between align-items-center">
+    <small class="text-muted">Mostrando @Model.Count de técnicos</small>
+    <!-- Paginación opcional -->
+</div>
+</div>

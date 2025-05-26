@@ -48,7 +48,6 @@ namespace TicketsApp.Models.ViewModels
         public int? EmpresaId { get; set; }
 
         [Display(Name = "Categorías")]
-       
         public List<int> CategoriasSeleccionadas { get; set; } = new List<int>();
 
         // Propiedades para los dropdowns
