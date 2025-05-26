@@ -240,10 +240,13 @@ namespace TicketsApp.Controllers
             // Filtrar Admin si es tipo Externo
             if (tipoUsuario == "Externo")
             {
-                roles = roles.Where(r => r.NombreRol != "Admin").ToList();
+                roles = roles.Where(r =>( r.NombreRol != "Administrador" && r.NombreRol != "Tecnico")).ToList();
+            }else if (tipoUsuario == "Interno")
+            {
+                roles = roles.Where(r => r.NombreRol != "Cliente").ToList();
             }
 
-            var result = roles.Select(r => new { value = r.RolId, text = r.NombreRol }).ToList();
+                var result = roles.Select(r => new { value = r.RolId, text = r.NombreRol }).ToList();
             return Json(result);
         }
     }
