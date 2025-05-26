@@ -17,6 +17,10 @@
     {
         Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
     }
+
+    
+    var estadoEnEsperaId = 4; // Cambia al Id correcto
+    bool puedeEditar = Model.EstadoId == estadoEnEsperaId;
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -131,6 +135,41 @@
             </div>
         }
     </div>
+
+
+    @if (puedeEditar)
+    {
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Agregar Comentario y Archivos</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="AgregarAdjuntosYComentarios" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ticketId" value="@Model.TicketId" />
+
+                    <div class="mb-3">
+                        <label for="nuevoComentario" class="form-label">Comentario</label>
+                        <textarea name="nuevoComentario" id="nuevoComentario" rows="3" class="form-control" placeholder="Escribe un comentario..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nuevosAdjuntos" class="form-label">Archivos adjuntos</label>
+                        <input type="file" name="nuevosAdjuntos" id="nuevosAdjuntos" multiple class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.zip,.rar" />
+                        <small class="form-text text-muted">Formatos permitidos: PDF, Word, Excel, imágenes, ZIP, RAR. Máximo 10MB por archivo.</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Agregar</button>
+                </form>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning mt-4">
+            No se ha recibido actualización.
+        </div>
+    }
 
     <div class="mt-5 text-end">
         <a asp-action="VerTickets" class="btn btn-volver">
