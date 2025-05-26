@@ -1,37 +1,42 @@
-﻿@{
+﻿@model TicketsApp.Models.ViewModels.LoginViewModel
+
+@{
     Layout = "~/Views/Shared/_LayoutLogin.cshtml";
 }
 
 <div class="login-container d-flex flex-column justify-content-center align-items-center">
     <img src="~/media/FIX.svg" alt="Logo" class="logo" />
+    @* @if (ViewBag.Hash != null)
+    {
+        <div class="alert alert-info mt-3">
+            Hash generado: <code>@ViewBag.Hash</code>
+        </div>
+    } *@
 
-    <form class="w-100 d-flex flex-column gap-4" method="post" asp-controller="Auth" asp-action="Login">
+    <form class="w-100 d-flex flex-column gap-4" method="post">
         <div>
-            <label class="form-label">Correo electrónico</label>
+            <label asp-for="Email" class="form-label"></label>
             <div class="position-relative">
-                <input type="email"
-                       class="form-control input-login"
-                       id="email"
-                       name="Email"
-                       placeholder="sam.torres@nexus.com"
-                       required>
+                <input asp-for="Email" class="form-control input-login" placeholder="correo@ejemplo.com" />
                 <i class="bi bi-envelope icon-input"></i>
+                <span asp-validation-for="Email" class="text-danger"></span>
             </div>
         </div>
 
         <div>
-            <label class="form-label">Contraseña</label>
+            <label asp-for="Password" class="form-label"></label>
             <div class="position-relative">
-                <input type="password"
-                       class="form-control input-login"
-                       id="password"
-                       name="Password"
-                       placeholder="••••••••••••••••••••••••"
-                       required>
+                <input asp-for="Password" class="form-control input-login" id="password"  placeholder="•••••••••••" />
                 <i class="bi bi-lock-fill icon-input"></i>
                 <i class="bi bi-eye-slash toggle-password" id="togglePassword"></i>
+                <span asp-validation-for="Password" class="text-danger"></span>
             </div>
         </div>
+
+        @if (!string.IsNullOrEmpty(ViewBag.Error as string))
+        {
+            <div class="alert alert-danger">@ViewBag.Error</div>
+        }
 
         <div class="forgot-password">
             <a href="#" class="forgot-link">Olvidó su contraseña</a>
@@ -39,6 +44,7 @@
 
         <button type="submit" class="btn w-100 mt-2">Iniciar Sesión</button>
     </form>
+
 </div>
 
 <style>

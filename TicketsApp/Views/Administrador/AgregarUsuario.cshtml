@@ -8,7 +8,7 @@
 
 <style>
     .form-container {
-       /*  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+        /*  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
         min-height: 100vh;
         padding: 2rem 0;
     }
@@ -166,6 +166,18 @@
     #empresaSection {
         display: none;
     }
+
+    .floating-label input::placeholder {
+        color: transparent;
+        transition: color 0.2s ease-in-out;
+    }
+
+    .floating-label input:focus::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+
+
 </style>
 
 <div class="form-container">
@@ -263,7 +275,7 @@
                                     <div class="floating-label">
                                         <i class="fas fa-building input-icon"></i>
                                         <select asp-for="EmpresaId" asp-items="Model.Empresas">
-                                            <option value="">Seleccione una empresa...</option>
+                                            <option value="" >Seleccione una empresa...</option>
                                         </select>
                                         <label asp-for="EmpresaId"></label>
                                         <span asp-validation-for="EmpresaId" class="text-danger"></span>
@@ -291,7 +303,7 @@
                                 </div>
                             </div>
 
-                            <div class="mb-4">
+                            <div class="mb-4" id="categoriasSection" style="display: none;">
                                 <h5 class="mb-3"><i class="fas fa-tags me-2"></i>Categorías</h5>
                                 <p class="text-muted small mb-3">Seleccione al menos una categoría para el usuario</p>
                                 <div class="categoria-grid">
@@ -365,6 +377,48 @@
             })
             .catch(error => console.error('Error:', error));
     }
+        function evaluarCategoriaVisible() {
+        const tipoUsuario = document.getElementById('TipoUsuario').value;
+        const rolId = document.getElementById('rolSelect').value;
+        const categoriaSection = document.getElementById('categoriasSection');
+
+        // Verifica si el usuario es Interno y el rol es Técnico
+        const esInterno = tipoUsuario === 'Interno';
+        const esTecnico = document.getElementById('rolSelect')
+            .querySelector('option:checked')?.textContent?.trim() === 'Técnico';
+
+        if (esInterno && esTecnico) {
+            categoriaSection.style.display = 'block';
+        } else {
+            categoriaSection.style.display = 'none';
+
+            // Desmarcar todos los checkboxes si se oculta
+            document.querySelectorAll('input[name="CategoriasSeleccionadas"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.categoria-card').forEach(el => el.classList.remove('selected'));
+        }
+    }
+
+        function evaluarCategoriaVisible() {
+        const tipoUsuario = document.getElementById('TipoUsuario').value;
+        const rolId = document.getElementById('rolSelect').value;
+        const categoriaSection = document.getElementById('categoriasSection');
+
+        // Verifica si el usuario es Interno y el rol es Técnico
+        const esInterno = tipoUsuario === 'Interno';
+        const esTecnico = document.getElementById('rolSelect')
+            .querySelector('option:checked')?.textContent?.trim() === 'Tecnico';
+
+        if (esInterno && esTecnico) {
+            categoriaSection.style.display = 'block';
+        } else {
+            categoriaSection.style.display = 'none';
+
+            // Desmarcar todos los checkboxes si se oculta
+            document.querySelectorAll('input[name="CategoriasSeleccionadas"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.categoria-card').forEach(el => el.classList.remove('selected'));
+        }
+    }
+
 
     function toggleCategoria(categoriaId, element) {
         const checkbox = element.querySelector('input[type="checkbox"]');
@@ -396,6 +450,15 @@
                 e.target.value = value;
             });
         }
+    });
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+        evaluarCategoriaVisible();
+
+        document.getElementById('TipoUsuario').addEventListener('change', evaluarCategoriaVisible);
+        document.getElementById('rolSelect').addEventListener('change', evaluarCategoriaVisible);
     });
 </script>
 

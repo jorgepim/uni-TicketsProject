@@ -1,0 +1,690 @@
+﻿@model TicketsApp.Models.ViewModels.CrearTicketViewModel
+
+@{
+    ViewData["Title"] = "Crear Nuevo Ticket";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<!-- Font Awesome CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Bootstrap CSS (si no está incluido) -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container-fluid py-4">
+    @* Mensajes de TempData *@
+    @if (TempData["Exito"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["Exito"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <!-- Header Card -->
+            <div class="card border-0 shadow-lg mb-4">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-circle bg-white bg-opacity-20 me-3">
+                            <i class="fas fa-ticket-alt text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-0 fw-bold">Crear Nuevo Ticket</h4>
+                            <small class="opacity-75">Complete los campos requeridos para crear el ticket</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <form asp-action="Crear" method="post" id="createTicketForm" enctype="multipart/form-data" novalidate>
+
+                        @if (!string.IsNullOrEmpty(ViewBag.ReturnUrl as string))
+                        {
+                            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+                        }
+
+                        @Html.AntiForgeryToken()
+
+                        <!-- Validation Summary -->
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger d-none" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Error de validación:</strong> Por favor corriga los errores indicados.
+                        </div>
+
+                        <!-- Campos Principales -->
+                        <div class="row g-4">
+                            <!-- Categoría -->
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <select asp-for="CategoriaId" class="form-select" id="categoriaSelect" required>
+                                        <option value="">Seleccionar...</option>
+                                        @foreach (var categoria in ViewBag.Categorias as List<Categoria>)
+                                        {
+                                            <option value="@categoria.CategoriaId">@categoria.Nombre</option>
+                                        }
+                                    </select>
+                                    <label for="categoriaSelect">
+                                        <i class="fas fa-folder text-primary me-2"></i>Categoría *
+                                    </label>
+                                    <div class="invalid-feedback">
+                                        <i class="fas fa-exclamation-circle me-1"></i>
+                                        Por favor seleccione una categoría
+                                    </div>
+                                </div>
+                                <span asp-validation-for="CategoriaId" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Prioridad -->
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <select asp-for="Prioridad" class="form-select" id="prioridadSelect" required>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Crítico">🔴 Crítico</option>
+                                        <option value="Importante">🟡 Importante</option>
+                                        <option value="Baja">🟢 Baja</option>
+                                    </select>
+                                    <label for="prioridadSelect">
+                                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>Prioridad *
+                                    </label>
+                                    <div class="invalid-feedback">
+                                        <i class="fas fa-exclamation-circle me-1"></i>
+                                        Por favor seleccione una prioridad
+                                    </div>
+                                </div>
+                                <span asp-validation-for="Prioridad" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Título -->
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <input asp-for="Titulo" class="form-control" id="tituloInput" placeholder="Título" required>
+                                    <label for="tituloInput">
+                                        <i class="fas fa-heading text-info me-2"></i>Título del Ticket *
+                                    </label>
+                                </div>
+                                <span asp-validation-for="Titulo" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Aplicación Afectada -->
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <input asp-for="AplicacionAfectada" class="form-control" id="aplicacionInput" placeholder="Aplicación" required>
+                                    <label for="aplicacionInput">
+                                        <i class="fas fa-desktop text-secondary me-2"></i>Aplicación Afectada
+                                    </label>
+                                    <div class="invalid-feedback">
+                                        <i class="fas fa-exclamation-circle me-1"></i>
+                                        El título es requerido (mínimo 5 caracteres)
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Ej: Sistema de Ventas, Portal Web, Aplicación Móvil, etc.
+                                </div>
+                                <span asp-validation-for="AplicacionAfectada" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Descripción -->
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <textarea asp-for="Descripcion" class="form-control" id="descripcionTextarea"
+                                              placeholder="Descripción" style="height: 120px" required></textarea>
+                                    <label for="descripcionTextarea">
+                                        <i class="fas fa-align-left text-success me-2"></i>Descripción del Problema *
+                                    </label>
+                                    <div class="invalid-feedback">
+                                        <i class="fas fa-exclamation-circle me-1"></i>
+                                        La descripción es requerida (mínimo 10 caracteres)
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Describa detalladamente el problema, pasos para reproducirlo y el comportamiento esperado.
+                                </div>
+                                <span asp-validation-for="Descripcion" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Comentario Inicial -->
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <textarea asp-for="ComentarioInicial" class="form-control" id="comentarioTextarea"
+                                              placeholder="Comentario" style="height: 100px"></textarea>
+                                    <label for="comentarioTextarea">
+                                        <i class="fas fa-comment text-muted me-2"></i>Comentario Inicial (Opcional)
+                                    </label>
+                                </div>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Información adicional, soluciones intentadas, contexto relevante, etc.
+                                </div>
+                                <span asp-validation-for="ComentarioInicial" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- Sección de Archivos Adjuntos -->
+                        <div class="mt-5">
+                            <div class="card border-primary">
+                                <div class="card-header bg-light border-primary">
+                                    <h6 class="mb-0 text-primary fw-bold">
+                                        <i class="fas fa-paperclip me-2"></i>Archivos Adjuntos
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <input type="file" id="fileInput" class="d-none"
+                                                   accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.zip,.rar">
+
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <button type="button" id="selectFileBtn" class="btn btn-outline-primary">
+                                                    <i class="fas fa-plus me-1"></i>Agregar Archivo
+                                                </button>
+                                                <button type="button" id="selectMultipleBtn" class="btn btn-outline-secondary">
+                                                    <i class="fas fa-copy me-1"></i>Selección Múltiple
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="alert alert-info mb-0 py-2">
+                                                <small>
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    <strong>Formatos:</strong> PDF, Word, Excel, Imágenes, TXT, ZIP, RAR<br>
+                                                    <strong>Tamaño máximo:</strong> 10MB por archivo
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Preview de Archivos -->
+                                    <div id="filePreview" class="mt-4 d-none">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="text-primary mb-0 fw-bold">
+                                                <i class="fas fa-list me-1"></i>
+                                                Archivos Adjuntos (<span id="fileCount">0</span>)
+                                            </h6>
+                                            <button type="button" id="clearAllBtn" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash me-1"></i>Limpiar Todo
+                                            </button>
+                                        </div>
+                                        <div id="fileList" class="border rounded bg-light p-3">
+                                            <!-- Los archivos se mostrarán aquí dinámicamente -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Inputs ocultos para enviar los archivos -->
+                                    <div id="hiddenFileInputs"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="row mt-5">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between flex-wrap gap-2">
+                                    @if (!string.IsNullOrEmpty(ViewBag.ReturnUrl as string))
+                                    {
+                                        <a href="@ViewBag.ReturnUrl" class="btn btn-light btn-lg px-4">
+                                            <i class="fas fa-arrow-left me-2"></i>Cancelar
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <a asp-action="Index" class="btn btn-light btn-lg px-4">
+                                            <i class="fas fa-arrow-left me-2"></i>Cancelar
+                                        </a>
+                                    }
+
+                                    <button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn">
+                                        <i class="fas fa-save me-2"></i>Crear Ticket
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts necesarios -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('createTicketForm');
+        const fileInput = document.getElementById('fileInput');
+        const filePreview = document.getElementById('filePreview');
+        const fileList = document.getElementById('fileList');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const selectMultipleBtn = document.getElementById('selectMultipleBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const fileCount = document.getElementById('fileCount');
+        const hiddenFileInputs = document.getElementById('hiddenFileInputs');
+        const submitBtn = document.getElementById('submitBtn');
+
+        let attachedFiles = [];
+
+        // Validación en tiempo real
+        const requiredFields = ['CategoriaId', 'Prioridad', 'Titulo', 'Descripcion'];
+
+        requiredFields.forEach(fieldName => {
+            const field = document.querySelector(`[name="${fieldName}"]`);
+            if (field) {
+                field.addEventListener('input', validateField);
+                field.addEventListener('blur', validateField);
+            }
+        });
+
+        function validateField(e) {
+            const field = e.target;
+            const value = field.value.trim();
+            let isValid = true;
+
+            // Validaciones específicas
+            if (field.name === 'Titulo' && value.length < 5) isValid = false;
+            if (field.name === 'Descripcion' && value.length < 10) isValid = false;
+            if ((field.name === 'CategoriaId' || field.name === 'Prioridad') && !value) isValid = false;
+
+            // Aplicar clases de validación
+            field.classList.toggle('is-valid', isValid && value);
+            field.classList.toggle('is-invalid', !isValid && value);
+        }
+
+        // Gestión de archivos
+        selectFileBtn.addEventListener('click', function() {
+            fileInput.removeAttribute('multiple');
+            fileInput.click();
+        });
+
+        selectMultipleBtn.addEventListener('click', function() {
+            fileInput.setAttribute('multiple', 'multiple');
+            fileInput.click();
+        });
+
+        clearAllBtn.addEventListener('click', function() {
+            attachedFiles = [];
+            updateFileDisplay();
+            updateHiddenInputs();
+            showToast('Todos los archivos han sido eliminados', 'info');
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            const newFiles = Array.from(e.target.files);
+
+            if (newFiles.length > 0) {
+                const validFiles = [];
+
+                for (let file of newFiles) {
+                    if (validateFile(file)) {
+                        const exists = attachedFiles.some(existingFile =>
+                            existingFile.name === file.name && existingFile.size === file.size
+                        );
+
+                        if (!exists) {
+                            validFiles.push(file);
+                        } else {
+                            showToast(`El archivo "${file.name}" ya está adjuntado`, 'warning');
+                        }
+                    }
+                }
+
+                if (validFiles.length > 0) {
+                    attachedFiles = attachedFiles.concat(validFiles);
+                    updateFileDisplay();
+                    updateHiddenInputs();
+
+                    const message = validFiles.length === 1
+                        ? `Archivo "${validFiles[0].name}" agregado correctamente`
+                        : `${validFiles.length} archivos agregados correctamente`;
+                    showToast(message, 'success');
+                }
+            }
+
+            fileInput.value = '';
+        });
+
+        function validateFile(file) {
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            const allowedExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.jpg', '.jpeg', '.png', '.zip', '.rar'];
+
+            if (file.size > maxSize) {
+                showToast(`El archivo "${file.name}" excede el tamaño máximo de 10MB`, 'error');
+                return false;
+            }
+
+            const extension = '.' + file.name.split('.').pop().toLowerCase();
+            if (!allowedExtensions.includes(extension)) {
+                showToast(`El archivo "${file.name}" no tiene un formato permitido`, 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        function updateFileDisplay() {
+            if (attachedFiles.length === 0) {
+                filePreview.classList.add('d-none');
+                return;
+            }
+
+            filePreview.classList.remove('d-none');
+            fileCount.textContent = attachedFiles.length;
+            fileList.innerHTML = '';
+
+            attachedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item d-flex justify-content-between align-items-center mb-2 p-3 border rounded bg-white shadow-sm';
+
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'd-flex align-items-center';
+
+                const fileIcon = getFileIcon(file.name);
+                const fileSize = formatFileSize(file.size);
+
+                fileInfo.innerHTML = `
+                    <div class="file-icon me-3">
+                        <i class="${fileIcon} fa-2x text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-dark">${file.name}</div>
+                        <small class="text-muted">
+                            <i class="fas fa-weight-hanging me-1"></i>${fileSize}
+                        </small>
+                    </div>
+                `;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-outline-danger';
+                removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                removeBtn.title = 'Eliminar archivo';
+                removeBtn.onclick = () => removeFile(index);
+
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(removeBtn);
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function updateHiddenInputs() {
+            hiddenFileInputs.innerHTML = '';
+
+            attachedFiles.forEach((file, index) => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'file';
+                hiddenInput.name = 'Adjuntos';
+                hiddenInput.style.display = 'none';
+
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                hiddenInput.files = dt.files;
+
+                hiddenFileInputs.appendChild(hiddenInput);
+            });
+        }
+
+        function getFileIcon(fileName) {
+            const extension = fileName.split('.').pop().toLowerCase();
+
+            const iconMap = {
+                'pdf': 'fas fa-file-pdf text-danger',
+                'doc': 'fas fa-file-word text-primary',
+                'docx': 'fas fa-file-word text-primary',
+                'xls': 'fas fa-file-excel text-success',
+                'xlsx': 'fas fa-file-excel text-success',
+                'jpg': 'fas fa-file-image text-warning',
+                'jpeg': 'fas fa-file-image text-warning',
+                'png': 'fas fa-file-image text-warning',
+                'zip': 'fas fa-file-archive text-secondary',
+                'rar': 'fas fa-file-archive text-secondary',
+                'txt': 'fas fa-file-alt text-info'
+            };
+
+            return iconMap[extension] || 'fas fa-file text-muted';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function removeFile(index) {
+            const fileName = attachedFiles[index].name;
+            attachedFiles.splice(index, 1);
+            updateFileDisplay();
+            updateHiddenInputs();
+            showToast(`Archivo "${fileName}" eliminado correctamente`, 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const iconMap = {
+                'success': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'info': 'fas fa-info-circle'
+            };
+
+            const colorMap = {
+                'success': 'bg-success',
+                'error': 'bg-danger',
+                'warning': 'bg-warning',
+                'info': 'bg-info'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white ${colorMap[type]} border-0 position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="${iconMap[type]} me-2"></i>${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            const bsToast = new bootstrap.Toast(toast, { delay: 4000 });
+            bsToast.show();
+
+            toast.addEventListener('hidden.bs.toast', () => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            });
+        }
+
+        // Envío del formulario
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            // Validar formulario
+            let isValid = true;
+            const formData = new FormData();
+
+            // Validar campos requeridos
+            requiredFields.forEach(fieldName => {
+                const field = document.querySelector(`[name="${fieldName}"]`);
+                if (field) {
+                    const value = field.value.trim();
+                    let fieldValid = true;
+
+                    if (fieldName === 'Titulo' && value.length < 5) fieldValid = false;
+                    if (fieldName === 'Descripcion' && value.length < 10) fieldValid = false;
+                    if ((fieldName === 'CategoriaId' || fieldName === 'Prioridad') && !value) fieldValid = false;
+
+                    field.classList.toggle('is-valid', fieldValid);
+                    field.classList.toggle('is-invalid', !fieldValid);
+
+                    if (!fieldValid) isValid = false;
+                }
+            });
+
+            if (!isValid) {
+                showToast('Por favor complete todos los campos requeridos correctamente', 'error');
+                return;
+            }
+
+            // Validar archivos
+            for (let file of attachedFiles) {
+                if (file.size > 10 * 1024 * 1024) {
+                    Swal.fire({
+                        title: 'Archivo muy grande',
+                        text: `El archivo "${file.name}" excede el tamaño máximo de 10MB.`,
+                        icon: 'warning',
+                        confirmButtonText: 'Entendido'
+                    });
+                    return;
+                }
+            }
+
+            // Preparar envío
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creando Ticket...';
+
+            const formDataToSend = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formDataToSend
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: '¡Ticket Creado!',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonText: 'Continuar',
+                        timer: 3000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.href = data.redirectUrl;
+                    });
+                } else {
+                    throw new Error(data.message || 'Error al crear el ticket');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: error.message || 'No se pudo crear el ticket. Intente nuevamente.',
+                    icon: 'error',
+                    confirmButtonText: 'Cerrar'
+                });
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Crear Ticket';
+            });
+        });
+    });
+</script>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .icon-circle {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .form-floating > label {
+        font-weight: 500;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+    }
+
+    .file-item {
+        transition: all 0.3s ease;
+        border: 1px solid #e3e6f0 !important;
+    }
+
+        .file-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        }
+
+    .file-icon {
+        width: 50px;
+        text-align: center;
+    }
+
+    #fileList {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+    }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-1px);
+        }
+
+    .card {
+        border-radius: 12px;
+    }
+
+    .alert {
+        border-radius: 8px;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 8px;
+    }
+
+    .btn {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .is-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
+    }
+
+    .is-valid {
+        border-color: #198754 !important;
+        box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25) !important;
+    }
+
+    .toast {
+        min-width: 300px;
+    }
+
+  
+</style>
