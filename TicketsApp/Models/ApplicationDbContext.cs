@@ -17,10 +17,10 @@ namespace TicketsApp.Models
         public DbSet<EstadoTicket> EstadosTicket { get; set; }
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<HistorialEstadoTicket> HistorialEstadosTicket { get; set; }
-        public DbSet<Adjunto> Adjuntos { get; set; }
+        public DbSet<Adjunto> Adjunto { get; set; }
         public DbSet<Asignacion> Asignaciones { get; set; }
         public DbSet<TareaColaborativa> TareasColaborativas { get; set; }
-        public DbSet<ComentarioTicket> ComentariosTicket { get; set; }
+        public DbSet<ComentariosTicket> ComentariosTicket { get; set; }
         public DbSet<Notificacion> Notificaciones { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

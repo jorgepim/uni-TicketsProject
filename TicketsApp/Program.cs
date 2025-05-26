@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TicketsApp.Models;
+using TicketsApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,7 @@ builder.Services.AddAuthentication("Cookies")
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
     });
 
+builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddAuthorization();
 
 var app = builder.Build();

@@ -2,7 +2,7 @@
 
 namespace TicketsApp.Models
 {
-    public class ComentarioTicket
+    public class ComentariosTicket
     {
         [Key]
         public int ComentarioId { get; set; }
