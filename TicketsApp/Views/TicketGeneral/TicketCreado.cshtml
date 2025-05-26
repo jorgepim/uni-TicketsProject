@@ -1,0 +1,25 @@
+﻿@{
+    ViewData["Title"] = "Ticket Creado";
+    var ticketId = ViewBag.TicketId;
+    var returnUrl = ViewBag.ReturnUrl as string;
+}
+
+<div class="container mt-5">
+    <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong>Éxito:</strong> El ticket #@ticketId fue creado exitosamente.
+    </div>
+
+    <div class="text-center mt-4">
+        <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+        <p class="mt-2">Redirigiendo...</p>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        setTimeout(function () {
+            window.location.href = "@returnUrl";
+        }, 3000); // Redirige después de 3 segundos
+    </script>
+}

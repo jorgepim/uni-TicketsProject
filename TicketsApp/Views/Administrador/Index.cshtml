@@ -4,9 +4,28 @@
 }
 
 <div class="text-left">
-    <p class="display-4 fs-2 fw-normal">Panel de Administrador</p>
+    <div class="mb-4">
+       @*  <p class="display-4 fs-2 fw-normal">Panel de Administrador</p> *@
+
+        @if (!string.IsNullOrEmpty(ViewBag.NombreCompleto as string))
+        {
+            <div class="alert">
+                <h5 class="mb-1">
+                    <i class="bi bi-person-circle me-2"></i>
+                    Bienvenido, @ViewBag.NombreCompleto
+                </h5>
+                <small class="text-muted">
+                    @ViewBag.Email | Rol: @ViewBag.Rol
+                </small>
+            </div>
+        }
+    </div>
     <a href="@Url.Action("AgregarUsuario")" class="btn btn-primary">
         <i class="fas fa-plus me-2"></i>Agregar Usuario
     </a>
-</div>
+    <a href="@Url.Action("Crear", "TicketGeneral", new { returnUrl = Url.ActionContext.HttpContext.Request.Path })" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Crear Nuevo Ticket
+    </a>
 
+
+</div>
