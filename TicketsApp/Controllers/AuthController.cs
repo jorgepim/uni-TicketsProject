@@ -68,7 +68,7 @@ namespace TicketsApp.Controllers
             return rol switch
             {
                 "Administrador" => RedirectToAction("Index", "Administrador"),
-                "Técnico" => RedirectToAction("Index", "Tecnico"),
+                "Tecnico" => RedirectToAction("Index", "Tecnico"),
                 "Cliente" => RedirectToAction("Index", "Cliente"),
                 _ => RedirectToAction("Login")
             };
