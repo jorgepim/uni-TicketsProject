@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using System.Security.Claims;
 using TicketsApp.Models;
 using TicketsApp.Models.ViewModels;
 
@@ -21,6 +22,12 @@ namespace TicketsApp.Controllers
 
         public IActionResult Index()
         {
+            // Obtener datos directamente de los claims
+            ViewBag.NombreCompleto = User.FindFirst("NombreCompleto")?.Value
+                ?? $"{User.FindFirst(ClaimTypes.Name)?.Value} {User.FindFirst(ClaimTypes.Surname)?.Value}".Trim();
+            ViewBag.Email = User.FindFirst(ClaimTypes.Email)?.Value;
+            ViewBag.Rol = User.FindFirst(ClaimTypes.Role)?.Value;
+
             return View();
         }
 

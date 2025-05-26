@@ -31,12 +31,6 @@ namespace TicketsApp.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            //string hash = BCrypt.Net.BCrypt.HashPassword(model.Password);
-
-            //// Mostrarlo en pantalla para copiarlo
-            //ViewBag.Hash = hash;
-            //return View(model);
-
             var user = await _context.Usuarios
                 .Include(u => u.Rol)
                 .FirstOrDefaultAsync(u => u.Email == model.Email);
@@ -47,17 +41,20 @@ namespace TicketsApp.Controllers
                 return View(model);
             }
 
-            // Crear claims de autenticación
+            // Crear claims de autenticación incluyendo apellido
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.Nombre ?? ""),
+                new Claim(ClaimTypes.Surname, user.Apellido ?? ""), // Nuevo claim para apellido
                 new Claim(ClaimTypes.Email, user.Email ?? ""),
                 new Claim(ClaimTypes.Role, user.Rol?.NombreRol ?? "Invitado"),
-                new Claim("UsuarioId", user.UsuarioId.ToString())
-            };
+                new Claim("UsuarioId", user.UsuarioId.ToString()),
+                new Claim("NombreCompleto", $"{user.Nombre} {user.Apellido}".Trim()) // Claim directo para nombre completo
+                };
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);
+
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
             return RedirectToAction("RedirigirPorRol");
