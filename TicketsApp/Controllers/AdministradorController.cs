@@ -14,13 +14,14 @@ namespace TicketsApp.Controllers
     public class AdministradorController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private const int PageSize = 20;
 
         public AdministradorController(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
             // Obtener datos directamente de los claims
             ViewBag.NombreCompleto = User.FindFirst("NombreCompleto")?.Value
@@ -28,7 +29,47 @@ namespace TicketsApp.Controllers
             ViewBag.Email = User.FindFirst(ClaimTypes.Email)?.Value;
             ViewBag.Rol = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            return View();
+            // Obtener tickets con paginación
+            var ticketsQuery = from t in _context.Tickets
+                               join u in _context.Usuarios on t.UsuarioCreadorId equals u.UsuarioId
+                               join c in _context.Categorias on t.CategoriaId equals c.CategoriaId
+                               join e in _context.EstadosTicket on t.EstadoId equals e.EstadoId
+                               join ce in _context.ClientesExternos on u.UsuarioId equals ce.UsuarioId into ceGroup
+                               from ce in ceGroup.DefaultIfEmpty()
+                               join emp in _context.EmpresasExternas on ce.EmpresaId equals emp.EmpresaId into empGroup
+                               from emp in empGroup.DefaultIfEmpty()
+                               join asig in _context.Asignaciones on t.TicketId equals asig.TicketId into asigGroup
+                               from asig in asigGroup.DefaultIfEmpty()
+                               join uAsig in _context.Usuarios on asig.UsuarioAsignadoId equals uAsig.UsuarioId into uAsigGroup
+                               from uAsig in uAsigGroup.DefaultIfEmpty()
+                               orderby t.FechaCreacion descending
+                               select new TicketAdminViewModel
+                               {
+                                   TicketId = t.TicketId,
+                                   Titulo = t.Titulo,
+                                   Descripcion = t.Descripcion,
+                                   Prioridad = t.Prioridad,
+                                   FechaCreacion = t.FechaCreacion ?? DateTime.MinValue,
+                                   NombreCategoria = c.Nombre,
+                                   NombreEstado = e.NombreEstado,
+                                   NombreEmpresa = emp != null ? emp.NombreEmpresa : (u.TipoUsuario == "Interno" ? "Fix|Now" : "Fix|Now"),
+                                   UsuarioAsignado = uAsig != null ? $"{uAsig.Nombre} {uAsig.Apellido}" : null
+                               };
+
+            // Contar total de tickets
+            var totalTickets = await ticketsQuery.CountAsync();
+
+            // Obtener tickets para la página actual
+            var tickets = await ticketsQuery
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
+                .ToListAsync();
+
+            // Pasar datos de paginación a la vista
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalTickets = totalTickets;
+
+            return View(tickets);
         }
 
         [HttpGet]
