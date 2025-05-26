@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace TicketsApp.Controllers
 {
 
-    [Authorize(Roles = "Tecnico")]
+    //[Authorize(Roles = "Tecnico")]
     public class TecnicoController : Controller
     {
         public IActionResult Index()
