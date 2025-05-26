@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -47,6 +47,7 @@
 
             .sidebar-menu li {
                 border-bottom: 1px solid rgba(255,255,255,0.1);
+                text-align:center;
             }
 
             .sidebar-menu a {
@@ -119,6 +120,16 @@
                         <i class="bi bi-tags"></i>
                         Categorías
                     </a>
+                </li>
+
+                <li>
+                    <form asp-controller="Auth" asp-action="Logout" method="post">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-box-arrow-left"></i>
+                            Cerrar sesión
+                        </button>
+                    </form>
+
                 </li>
             </ul>
         </nav>
