@@ -258,5 +258,107 @@ namespace TicketsApp.Controllers
                 var result = roles.Select(r => new { value = r.RolId, text = r.NombreRol }).ToList();
             return Json(result);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> PanelAdministrador(string busqueda = "", string area = "")
+        {
+            var tecnicos = await _context.Usuarios
+                .Include(u => u.Rol)
+                .Where(u => u.Rol.NombreRol == "Tecnico")
+                .ToListAsync();
+
+            var categorias = await _context.UsuariosCategorias
+                .Include(uc => uc.Categoria)
+                .ToListAsync();
+
+            var asignaciones = await _context.Asignaciones
+                .Include(a => a.Ticket)
+                .ThenInclude(t => t.Estado)
+                .ToListAsync();
+
+            var lista = tecnicos.Select(t =>
+            {
+                var ticketsAsignados = asignaciones.Count(a => a.UsuarioAsignadoId == t.UsuarioId);
+                var ticketsResueltos = asignaciones.Count(a =>
+                    a.UsuarioAsignadoId == t.UsuarioId && a.Ticket?.Estado?.NombreEstado == "Resuelto");
+
+                var areas = categorias
+                    .Where(c => c.UsuarioId == t.UsuarioId)
+                    .Select(c => c.Categoria?.Nombre ?? "")
+                    .Distinct()
+                    .ToList();
+
+                return new TecnicoPanelViewModel
+                {
+                    UsuarioId = t.UsuarioId,
+                    Nombre = t.Nombre!,
+                    Apellido = t.Apellido!,
+                    Email = t.Email!,
+                    Areas = areas,
+                    TicketsAsignados = ticketsAsignados,
+                    TicketsResueltos = ticketsResueltos
+                };
+            }).ToList();
+
+            // Filtro por búsqueda (nombre o apellido)
+            if (!string.IsNullOrWhiteSpace(busqueda))
+            {
+                lista = lista.Where(t =>
+                    t.Nombre.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
+                    t.Apellido.Contains(busqueda, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            // Filtro por área
+            if (!string.IsNullOrWhiteSpace(area) && area != "Todas")
+            {
+                lista = lista.Where(t => t.Areas.Contains(area)).ToList();
+            }
+
+            return View(lista);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> PerfilTecnico(int id)
+        {
+            var usuario = await _context.Usuarios
+                .Include(u => u.Rol)
+                .FirstOrDefaultAsync(u => u.UsuarioId == id);
+
+            if (usuario == null || usuario.Rol?.NombreRol != "Tecnico")
+                return NotFound();
+
+            var areas = await _context.UsuariosCategorias
+                .Where(uc => uc.UsuarioId == id)
+                .Select(uc => uc.Categoria.Nombre)
+                .ToListAsync();
+
+            var tickets = await _context.Asignaciones
+                .Where(a => a.UsuarioAsignadoId == id)
+                .Include(a => a.Ticket)
+                .ThenInclude(t => t.Estado)
+                .ToListAsync();
+
+            var model = new TecnicoPerfilViewModel
+            {
+                UsuarioId = usuario.UsuarioId,
+                Nombre = usuario.Nombre,
+                Apellido = usuario.Apellido,
+                Email = usuario.Email,
+                Telefono = usuario.Telefono,
+                TipoUsuario = usuario.TipoUsuario,
+                FechaRegistro = usuario.FechaRegistro ?? DateTime.Now,
+                Areas = areas,
+                Tickets = tickets.Select(t => new TicketResumenViewModel
+                {
+                    Titulo = t.Ticket?.Titulo,
+                    Estado = t.Ticket?.Estado?.NombreEstado,
+                    Prioridad = t.Ticket?.Prioridad,
+                    FechaCreacion = t.Ticket?.FechaCreacion
+                }).ToList()
+            };
+
+            return View(model);
+        }
+
     }
 }
