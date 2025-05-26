@@ -1,0 +1,67 @@
+﻿@model TicketsApp.Models.Ticket
+
+@{
+    ViewData["Title"] = "Detalles del Ticket";
+    Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
+}
+
+<h2>Detalles del Ticket #@Model.TicketId</h2>
+
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h5>@Model.Titulo</h5>
+    </div>
+    <div class="card-body">
+        <p><strong>Categoría:</strong> @Model.Categoria.Nombre</p>
+        <p><strong>Estado:</strong> @Model.Estado?.NombreEstado</p>
+        <p><strong>Prioridad:</strong> @Model.Prioridad</p>
+        <p><strong>Aplicación Afectada:</strong> @Model.AplicacionAfectada</p>
+        <p><strong>Descripción:</strong></p>
+        <p>@Model.Descripcion</p>
+        <p><strong>Fecha de Creación:</strong> @Model.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</p>
+    </div>
+</div>
+
+<h4>Comentarios</h4>
+
+@if (Model.ComentariosTicket != null && Model.ComentariosTicket.Any())
+{
+    <ul class="list-group mb-3">
+        @foreach (var comentario in Model.ComentariosTicket.OrderByDescending(c => c.FechaComentario))
+        {
+            <li class="list-group-item">
+                <small class="text-muted">@comentario.FechaComentario?.ToString("dd/MM/yyyy HH:mm") - @comentario.Usuario?.Nombre</small>
+                <p>@comentario.Comentario</p>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>No hay comentarios aún.</p>
+}
+
+<h4>Archivos Adjuntos</h4>
+
+@if (Model.Adjunto != null && Model.Adjunto.Any())
+{
+    <ul class="list-group">
+        @foreach (var adjunto in Model.Adjunto)
+        {
+            <li class="list-group-item">
+                <a asp-action="DescargarAdjunto" asp-route-adjuntoId="@adjunto.AdjuntoId" class="btn btn-link">
+                    <i class="fas fa-file-download me-1"></i>@adjunto.NombreArchivo
+                </a>
+                <small class="text-muted">Subido el @adjunto.FechaSubida?.ToString("dd/MM/yyyy HH:mm")</small>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>No hay archivos adjuntos.</p>
+}
+
+<a asp-action="TodosLosTickets" asp-controller="Tecnico" class="btn btn-secondary mt-3">
+    <i class="fas fa-arrow-left me-1"></i>Regresar a Tickets Asignados
+</a>

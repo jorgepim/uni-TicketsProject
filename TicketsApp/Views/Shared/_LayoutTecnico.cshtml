@@ -92,36 +92,32 @@
             </div> *@
             <ul class="sidebar-menu">
                 <li>
-                    <a asp-area="" asp-controller="Administrador" asp-action="Index">
+                    <a asp-area="" asp-controller="Tecnico" asp-action="Index">
                         <i class="bi bi-speedometer2"></i>
                         Dashboard
                     </a>
                 </li>
+                @*Tickets asignados, estado asignado, en proceso, en espera, resuelto*@
                 <li>
-                    <a asp-area="" asp-controller="Cliente" asp-action="Tickets">
-                        <i class="bi bi-people"></i>
-                        Clientes
-                    </a>
-                </li>
-                <li>
-                    <a asp-area="" asp-controller="Rols" asp-action="Index">
+                    <a asp-area="" asp-controller="Tecnico" asp-action="TicketsAsignados">
                         <i class="bi bi-file-earmark-text"></i>
-                        Roles
+                        Tickets Asignados
                     </a>
                 </li>
+                @*Historial Tickets, estado cerrado*@
                 <li>
-                    <a asp-area="" asp-controller="EmpresaExternas" asp-action="Index">
+                    <a asp-area="" asp-controller="Tecnico" asp-action="TodosLosTickets">
                         <i class="bi bi-building"></i>
-                        Empresas
+                        Historial Tickets
                     </a>
                 </li>
+                @*Tickets creados*@
                 <li>
-                    <a asp-area="" asp-controller="Categorias" asp-action="Index">
-                        <i class="bi bi-tags"></i>
-                        Categorías
+                    <a asp-area="" asp-controller="Tecnico" asp-action="TicketsCreados">
+                        <i class="bi bi-people"></i>
+                        Mis Tickets 
                     </a>
                 </li>
-
                 <li>
                     <form asp-controller="Auth" asp-action="Logout" method="post">
                         <button type="submit" class="btn btn-danger">
