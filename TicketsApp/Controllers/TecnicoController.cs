@@ -68,9 +68,9 @@ namespace TicketsApp.Controllers
             var ticket = await _context.Tickets
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
-                .Include(t => t.ComentariosTicket)
-                    .ThenInclude(c => c.Usuario)
+                .Include(t => t.ComentariosTicket).ThenInclude(c => c.Usuario)
                 .Include(t => t.Adjunto)
+                .Include(t => t.UsuarioCreador)
                 .FirstOrDefaultAsync(t => t.TicketId == id);
 
             if (ticket == null)
@@ -78,8 +78,29 @@ namespace TicketsApp.Controllers
                 return NotFound();
             }
 
+            // Obtener empresa si es externo
+            string nombreEmpresa = "Fix.now";
+            var usuarioCreador = ticket.UsuarioCreador;
+
+            if (usuarioCreador?.TipoUsuario == "Externo")
+            {
+                var clienteExterno = await _context.ClientesExternos
+                    .FirstOrDefaultAsync(ce => ce.UsuarioId == usuarioCreador.UsuarioId);
+
+                if (clienteExterno != null)
+                {
+                    var empresa = await _context.EmpresasExternas
+                        .FirstOrDefaultAsync(e => e.EmpresaId == clienteExterno.EmpresaId);
+
+                    nombreEmpresa = empresa?.NombreEmpresa ?? "Sin empresa";
+                }
+            }
+
+            ViewBag.NombreEmpresa = nombreEmpresa;
+
             return View(ticket);
         }
+
 
         [HttpGet]
         public async Task<IActionResult> TodosLosTickets()
@@ -146,14 +167,15 @@ namespace TicketsApp.Controllers
             return View(tickets);
         }
 
-        public IActionResult Detalles(int id)
+        public async Task<IActionResult> Detalles(int id)
         {
-            var ticket = _context.Tickets
+            var ticket = await _context.Tickets
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
                 .Include(t => t.ComentariosTicket).ThenInclude(c => c.Usuario)
                 .Include(t => t.Adjunto)
-                .FirstOrDefault(t => t.TicketId == id);
+                .Include(t => t.UsuarioCreador) // Incluir el creador
+                .FirstOrDefaultAsync(t => t.TicketId == id);
 
             if (ticket == null)
             {
@@ -165,9 +187,27 @@ namespace TicketsApp.Controllers
             var estadosPermitidos = new[] { "En progreso", "En espera", "Resuelto" };
 
             // Filtrar los estados válidos
-            var estados = _context.EstadosTicket
+            var estados = await _context.EstadosTicket
                 .Where(e => estadosPermitidos.Contains(e.NombreEstado))
-                .ToList();
+                .ToListAsync();
+
+            // Obtener nombre de empresa del creador
+            string nombreEmpresa = "Fix.now";
+            var usuarioCreador = ticket.UsuarioCreador;
+
+            if (usuarioCreador?.TipoUsuario == "Externo")
+            {
+                var clienteExterno = await _context.ClientesExternos
+                    .FirstOrDefaultAsync(ce => ce.UsuarioId == usuarioCreador.UsuarioId);
+
+                if (clienteExterno != null)
+                {
+                    var empresa = await _context.EmpresasExternas
+                        .FirstOrDefaultAsync(e => e.EmpresaId == clienteExterno.EmpresaId);
+
+                    nombreEmpresa = empresa?.NombreEmpresa ?? "Sin empresa";
+                }
+            }
 
             var viewModel = new TicketDetallesViewModel
             {
@@ -183,16 +223,14 @@ namespace TicketsApp.Controllers
                 EstadosDisponibles = estados,
                 ComentariosTicket = ticket.ComentariosTicket.ToList(),
                 Adjunto = ticket.Adjunto.ToList(),
-                NombreUsuarioCreador = ticket.UsuarioCreador?.Nombre,  // Asumiendo propiedad UsuarioCreador en ticket
+                NombreUsuarioCreador = usuarioCreador?.Nombre,
+                NombreEmpresa = nombreEmpresa
             };
 
             ViewBag.Estados = estados;
 
-
             return View(viewModel);
         }
-
-
 
 
         [HttpPost]
@@ -336,14 +374,15 @@ namespace TicketsApp.Controllers
             return RedirectToAction("TicketsAsignados");
         }
 
-        public IActionResult DetalleCreados(int id)
+        public async Task<IActionResult> DetalleCreados(int id)
         {
-            var ticket = _context.Tickets
+            var ticket = await _context.Tickets
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
                 .Include(t => t.ComentariosTicket).ThenInclude(c => c.Usuario)
                 .Include(t => t.Adjunto)
-                .FirstOrDefault(t => t.TicketId == id);
+                .Include(t => t.UsuarioCreador) // Asegúrate de incluir al creador
+                .FirstOrDefaultAsync(t => t.TicketId == id);
 
             if (ticket == null)
             {
@@ -351,6 +390,23 @@ namespace TicketsApp.Controllers
                 return RedirectToAction("Index");
             }
 
+            string nombreEmpresa = "Fix.now";
+
+            var usuarioCreador = ticket.UsuarioCreador;
+
+            if (usuarioCreador?.TipoUsuario == "Externo")
+            {
+                var clienteExterno = await _context.ClientesExternos
+                    .FirstOrDefaultAsync(ce => ce.UsuarioId == usuarioCreador.UsuarioId);
+
+                if (clienteExterno != null)
+                {
+                    var empresa = await _context.EmpresasExternas
+                        .FirstOrDefaultAsync(e => e.EmpresaId == clienteExterno.EmpresaId);
+
+                    nombreEmpresa = empresa?.NombreEmpresa ?? "Sin empresa";
+                }
+            }
 
             var viewModel = new TicketDetallesViewModel
             {
@@ -365,12 +421,13 @@ namespace TicketsApp.Controllers
                 FechaCreacion = ticket.FechaCreacion,
                 ComentariosTicket = ticket.ComentariosTicket.ToList(),
                 Adjunto = ticket.Adjunto.ToList(),
-                NombreUsuarioCreador = ticket.UsuarioCreador?.Nombre,  // Asumiendo propiedad UsuarioCreador en ticket
+                NombreUsuarioCreador = usuarioCreador?.Nombre,
+                NombreEmpresa = nombreEmpresa
             };
-
 
             return View(viewModel);
         }
+
 
         [HttpPost]
         public async Task<IActionResult> AgregarComentario2(int ticketId, string comentario)
