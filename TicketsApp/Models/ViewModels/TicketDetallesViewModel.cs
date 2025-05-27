@@ -24,7 +24,7 @@ namespace TicketsApp.Models.ViewModels
         public DateTime? FechaCreacion { get; set; }
 
         public string NombreUsuarioCreador { get; set; }
-        public string? NombreEmpresaClienteExterno { get; set; }
+        public string? NombreEmpresa { get; set; }
 
         public List<EstadoTicket> EstadosDisponibles { get; set; }  // Para el dropdown
 
