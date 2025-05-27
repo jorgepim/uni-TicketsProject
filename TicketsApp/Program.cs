@@ -22,6 +22,7 @@ builder.Services.AddAuthentication("Cookies")
     });
 
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddSingleton<EmailService>();
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
