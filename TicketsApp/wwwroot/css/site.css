@@ -20,3 +20,45 @@ html {
 body {
   margin-bottom: 60px;
 }
+<style>
+    .badge-select {
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-weight: 500;
+        display: inline-block;
+        font-size: 0.9rem;
+        position: relative;
+        min-width: 120px;
+        text-align: center;
+    }
+
+    .estado-select {
+        background-color: #b6f2eb;
+        border: none;
+        color: #005a5a;
+        font-weight: 500;
+        border-radius: 10px;
+        padding: 6px 12px;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20'%3E%3Cpath fill='black' d='M5.5 7l4.5 4.5L14.5 7z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 10px;
+        padding-right: 2rem;
+    }
+
+    .prioridad-select {
+        background-color: #fde9cd;
+        color: #924400;
+    }
+
+    .asignado-select {
+        background-color: #d1f3dc;
+        color: #176c3d;
+    }
+
+    select:focus {
+        outline: none;
+        box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.25);
+    }
+</style>

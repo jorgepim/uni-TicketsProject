@@ -181,13 +181,6 @@ namespace TicketsApp.Controllers
                 }
 
 
-
-
-
-
-
-
-
                 // Agregar las categorías seleccionadas
                 foreach (var categoriaId in model.CategoriasSeleccionadas)
                 {
