@@ -125,7 +125,7 @@ namespace TicketsApp.Controllers
             }
 
             
-            ticket.EstadoId = estadoAbiertoId;
+            //ticket.EstadoId = estadoAbiertoId;
 
             
             var notificacion = new Notificacion
