@@ -1,49 +1,105 @@
 ﻿@model List<TicketsApp.Models.Ticket>
 
 @{
-    ViewData["Title"] = "Todos los Tickets";
+    ViewData["Title"] = "Tickets Recibidos";
     Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
 }
 
-<h2 class="mb-4">Todos los Tickets Cerrados</h2>
+<style>
+    .filtro-btn {
+        background-color: #4a6793;
+        color: white;
+        font-weight: 600;
+        border-radius: 20px;
+        padding: 8px 20px;
+        border: none;
+    }
 
-@if (Model != null && Model.Any())
-{
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Título</th>
-                <th>Categoría</th>
-                <th>Estado</th>
-                <th>Prioridad</th>
-                <th>Fecha de Creación</th>
-                <th>Fecha de Cierre</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var ticket in Model)
-            {
-                <tr>
-                    <td>@ticket.TicketId</td>
-                    <td>@ticket.Titulo</td>
-                    <td>@ticket.Categoria?.Nombre</td>
-                    <td>@ticket.Estado?.NombreEstado</td>
-                    <td>@ticket.Prioridad</td>
-                    <td>@ticket.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td>@ticket.FechaCierre?.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td>
-                        <a asp-action="DetallesHistorial" asp-route-id="@ticket.TicketId" class="btn btn-sm btn-primary">
-                            Ver Detalles
-                        </a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
-else
-{
-    <div class="alert alert-info">No tienes tickets asignados.</div>
-}
+    .tabla-contenedor {
+        border-radius: 16px;
+        overflow: hidden;
+        background-color: white;
+    }
+
+    .tabla-tickets {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+
+    .tabla-tickets thead {
+        background-color: #f2f2f2;
+    }
+
+    .tabla-tickets th, .tabla-tickets td {
+        padding: 12px;
+        text-align: left;
+    }
+
+    .btn-detalles {
+        background-color: #4a6793;
+        color: white;
+        font-weight: 500;
+        border-radius: 12px;
+        padding: 5px 14px;
+        font-size: 0.85rem;
+        border: none;
+    }
+
+    .seccion-tickets {
+        background-color: #dcdde3;
+        border-radius: 20px;
+        padding: 30px;
+    }
+</style>
+
+<div class="container mt-4">
+
+    <div class="seccion-tickets">
+        <h4 class="text-primary fw-semibold mb-4">Tickets Recibidos</h4>
+
+        <!-- Filtros -->
+        <div class="mb-4 d-flex gap-3">
+            <button class="filtro-btn">Categoría</button>
+            <button class="filtro-btn">Estado</button>
+        </div>
+
+        <!-- Tabla -->
+        <div class="tabla-contenedor">
+            <table class="tabla-tickets w-100">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Título del Ticket</th>
+                        <th>Categoría</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var ticket in Model)
+                        {
+                            <tr style="border-bottom: 1px solid #ccc;">
+                                <td>@ticket.TicketId.ToString("00")</td>
+                                <td>@ticket.Titulo</td>
+                                <td>@ticket.Categoria?.Nombre</td>
+                                <td>@ticket.Estado?.NombreEstado</td>
+                                <td>
+                                    <a asp-action="Detalles" asp-route-id="@ticket.TicketId" class="btn-detalles">Ver Detalles</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">No hay tickets disponibles.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
