@@ -135,6 +135,24 @@
                         }
                     </select>
                 </div>
+
+
+                <!-- NUEVO: Filtro por Prioridad -->
+                <div class="filter-group">
+                    <label class="filter-label">Prioridad</label>
+                    <select name="prioridad" class="filter-select">
+                        <option value="">Todas las prioridades</option>
+                        @if (ViewBag.Prioridades != null)
+                        {
+                            @foreach (var prioridadItem in (IEnumerable<string>)ViewBag.Prioridades)
+                            {
+                                <!option value="@prioridadItem" @(ViewBag.Prioridad == prioridadItem ? "selected" : "")>
+                                    @prioridadItem
+                                </!option>
+                            }
+                        }
+                    </select>
+                </div>
             </div>
 
             <div class="filters-actions">

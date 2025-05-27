@@ -27,7 +27,8 @@ namespace TicketsApp.Controllers
         }
 
         public async Task<IActionResult> Index(int page = 1, string fechaFiltro = "", DateTime? fechaInicio = null,
-    DateTime? fechaFin = null, int? categoriaId = null, int? estadoId = null, int? usuarioAsignadoId = null)
+     DateTime? fechaFin = null, int? categoriaId = null, int? estadoId = null, int? usuarioAsignadoId = null,
+     string prioridad = null) // ← Agregar parámetro de prioridad
         {
             // Obtener datos directamente de los claims
             ViewBag.NombreCompleto = User.FindFirst("NombreCompleto")?.Value
@@ -45,8 +46,16 @@ namespace TicketsApp.Controllers
                 .ToListAsync();
 
             ViewBag.UsuariosAsignados = await _context.Usuarios
-                .Where(u => u.TipoUsuario == "Interno") // Solo usuarios internos para asignación
+                .Where(u => u.TipoUsuario == "Interno")
                 .Select(u => new { u.UsuarioId, NombreCompleto = $"{u.Nombre} {u.Apellido}" })
+                .ToListAsync();
+
+            // Obtener lista de prioridades únicas de la base de datos
+            ViewBag.Prioridades = await _context.Tickets
+                .Where(t => !string.IsNullOrEmpty(t.Prioridad))
+                .Select(t => t.Prioridad)
+                .Distinct()
+                .OrderBy(p => p == "Crítico" ? 1 : p == "Importante" ? 2 : p == "Normal" ? 3 : 4)
                 .ToListAsync();
 
             // Pasar valores de filtros actuales a la vista
@@ -56,6 +65,7 @@ namespace TicketsApp.Controllers
             ViewBag.CategoriaId = categoriaId;
             ViewBag.EstadoId = estadoId;
             ViewBag.UsuarioAsignadoId = usuarioAsignadoId;
+            ViewBag.Prioridad = prioridad; // ← Agregar prioridad a ViewBag
 
             // Query base de tickets
             var ticketsQuery = from t in _context.Tickets
@@ -102,7 +112,7 @@ namespace TicketsApp.Controllers
                     if (fechaInicio.HasValue)
                         fechaDesde = fechaInicio.Value.Date;
                     if (fechaFin.HasValue)
-                        fechaHasta = fechaFin.Value.Date.AddDays(1).AddTicks(-1); // Incluir todo el día
+                        fechaHasta = fechaFin.Value.Date.AddDays(1).AddTicks(-1);
                     break;
             }
 
@@ -132,6 +142,12 @@ namespace TicketsApp.Controllers
             if (usuarioAsignadoId.HasValue && usuarioAsignadoId.Value > 0)
             {
                 ticketsQuery = ticketsQuery.Where(t => t.UsuarioAsignadoId == usuarioAsignadoId.Value);
+            }
+
+            // ← NUEVO: Aplicar filtro por prioridad
+            if (!string.IsNullOrEmpty(prioridad))
+            {
+                ticketsQuery = ticketsQuery.Where(t => t.Prioridad == prioridad);
             }
 
             // Ordenar por fecha de creación descendente
