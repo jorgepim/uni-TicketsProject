@@ -23,4 +23,24 @@ public class NotificacionesController : Controller
 
         return PartialView("_ListaNotificaciones", notificaciones);
     }
+
+    [HttpPost]
+    public async Task<IActionResult> MarcarComoLeidas()
+    {
+        var usuarioId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == "UsuarioId")?.Value ?? "0");
+
+        var notificaciones = await _context.Notificaciones
+            .Where(n => n.UsuarioId == usuarioId && (n.Leido == false || n.Leido == null))
+            .ToListAsync();
+
+        foreach (var n in notificaciones)
+        {
+            n.Leido = true;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok();
+    }
+
 }

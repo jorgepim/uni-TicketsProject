@@ -12,10 +12,12 @@ namespace TicketsApp.Controllers
     public class TecnicoController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly EmailService _emailService;
 
-        public TecnicoController(ApplicationDbContext context)
+        public TecnicoController(ApplicationDbContext context, EmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         private int GetCurrentUserId()
@@ -234,7 +236,7 @@ namespace TicketsApp.Controllers
 
 
         [HttpPost]
-        public IActionResult CambiarEstado(int ticketId, int EstadoId)
+        public async Task<IActionResult> CambiarEstado(int ticketId, int EstadoId)
         {
             // Buscar el ticket incluyendo las relaciones necesarias
             var ticket = _context.Tickets
@@ -249,6 +251,8 @@ namespace TicketsApp.Controllers
                 TempData["Error"] = "El ticket no fue encontrado.";
                 return RedirectToAction("Detalles", new { id = ticketId });
             }
+
+            string EstadoAntes = ticket.Estado.NombreEstado;
 
             // Estados permitidos por nombre
             var estadosPermitidos = new[] { "En progreso", "En espera", "Resuelto" };
@@ -290,6 +294,38 @@ namespace TicketsApp.Controllers
             // Cambiar el estado y guardar
             ticket.EstadoId = EstadoId;
             _context.SaveChanges();
+
+            var usuarioCreador = await _context.Usuarios.FindAsync(ticket.UsuarioCreadorId);
+            var asignacion = await _context.Asignaciones
+        .FirstOrDefaultAsync(a => a.TicketId == ticket.TicketId);
+
+            Usuario? usuarioAsignado = null;
+            if (asignacion != null)
+            {
+                usuarioAsignado = await _context.Usuarios.FindAsync(asignacion.UsuarioAsignadoId);
+            }
+
+
+            // Generar cuerpo del correo
+            string cuerpoCorreo = _emailService.GenerarCuerpoCorreo(
+                ticket.TicketId.ToString(),
+                ticket.Titulo,
+                EstadoAntes,  // Estado anterior
+                estado.NombreEstado,  // Nuevo estado
+                ticket.Descripcion
+            );
+
+            // Enviar correo al creador del ticket
+            if (usuarioCreador != null)
+            {
+                await _emailService.SendEmailAsync(usuarioCreador.Email, "Cambio de Estado del Ticket", cuerpoCorreo);
+            }
+
+            // Enviar correo al técnico asignado
+            if (usuarioAsignado != null)
+            {
+                await _emailService.SendEmailAsync(usuarioAsignado.Email, "Cambio de Estado del Ticket", cuerpoCorreo);
+            }
 
             TempData["Success"] = "Estado actualizado correctamente.";
             return RedirectToAction("Detalles", new { id = ticketId });

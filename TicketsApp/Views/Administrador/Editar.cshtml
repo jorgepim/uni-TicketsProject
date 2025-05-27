@@ -1,0 +1,914 @@
+﻿@model TicketsApp.Models.ViewModels.EditarTicketAdminViewModel
+@{
+    ViewData["Title"] = $"Editar Ticket TK-{Model.TicketId}";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    bool esEditable = (bool)(ViewBag.EsEditable ?? false);
+    string returnUrl = ViewBag.ReturnUrl ?? Url.Action("Index", "Administrador");
+}
+
+@section Styles {
+    <style>
+        .ticket-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-critico {
+            background-color: #fee;
+            color: #dc3545;
+        }
+
+        .priority-importante {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .priority-baja {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .comment-item {
+            border-left: 3px solid #007bff;
+            padding-left: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .attachment-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .btn-remove-file {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .section-title {
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: 600;
+        }
+    </style>
+}
+
+<div class="container-fluid">
+    <!-- Header del Ticket -->
+    <div class="ticket-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-1">@Model.Titulo</h2>
+                <p class="mb-0">
+                    <strong>TK-@Model.TicketId</strong> |
+                    Creado el @Model.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="mb-2">
+                    <span class="status-badge priority-@Model.Prioridad.ToLower()">@Model.Prioridad</span>
+                </div>
+                <small>Estado: @Model.NombreEstado</small>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form asp-action="Editar" method="post" enctype="multipart/form-data" id="editTicketForm">
+        @Html.HiddenFor(m => m.TicketId)
+
+        <div class="row">
+            <!-- Información Principal -->
+            <div class="col-md-8">
+                <!-- Información del Ticket -->
+                <div class="info-card">
+                    <h5 class="section-title">Información del Ticket</h5>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>Aplicación:</strong></label>
+                            <p class="form-control-plaintext">@(Model.AplicacionAfectada ?? "No especificada")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>Empresa:</strong></label>
+                            <p class="form-control-plaintext">@(Model.NombreEmpresa ?? "Fix.now")</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label asp-for="EstadoId" class="form-label"><strong>Estado:</strong></label>
+                            <div class="d-flex gap-2">
+                                <select asp-for="EstadoId" class="form-select" id="selectEstado">
+                                    @foreach (var estado in ViewBag.Estados as List<EstadoTicket>)
+                                    {
+                                        <option value="@estado.EstadoId">@estado.NombreEstado</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-success btn-sm" id="btnActualizarEstado" title="Actualizar Estado">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="EstadoId" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Prioridad" class="form-label"><strong>Prioridad:</strong></label>
+                            <div class="d-flex gap-2">
+                                <select asp-for="Prioridad" class="form-select" id="selectPrioridad">
+                                    @foreach (var prioridad in ViewBag.Prioridades as List<string>)
+                                    {
+                                        <option value="@prioridad">@prioridad</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-warning btn-sm" id="btnActualizarPrioridad" title="Actualizar Prioridad">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Prioridad" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="UsuarioAsignadoId" class="form-label"><strong>Asignado a:</strong></label>
+                            @if (esEditable)
+                            {
+                                <div class="d-flex gap-2">
+                                    <select asp-for="UsuarioAsignadoId" class="form-select" id="selectAsignado">
+                                        <option value="">Sin asignar</option>
+                                        @foreach (var usuario in ViewBag.UsuariosInternos)
+                                        {
+                                            <option value="@usuario.UsuarioId"
+                                                    selected="@(Model.UsuarioAsignadoId == usuario.UsuarioId ? "selected" : null)">
+                                                @usuario.Nombre @usuario.Apellido (@usuario.NombreRol)
+                                            </option>
+                                        }
+                                    </select>
+                                    <button type="button" class="btn btn-primary btn-sm" id="btnAsignar" title="Asignar">
+                                        <i class="fas fa-user-check"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">
+                                    Se muestran solo técnicos de esta categoría y administradores activos
+                                </small>
+                            }
+                            else
+                            {
+                                <p class="form-control-plaintext">
+                                    @(Model.NombreUsuarioAsignado ?? "Sin asignar")
+                                    <small class="text-muted d-block">Ticket cerrado/cancelado - No editable</small>
+                                </p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div class="info-card">
+                    <h5 class="section-title">Descripción</h5>
+                    <div class="bg-light p-3 rounded">
+                        @Html.Raw(Model.Descripcion?.Replace("\n", "<br/>") ?? "Sin descripción")
+                    </div>
+                </div>
+
+                <!-- Comentarios -->
+                <!-- Sección de Comentarios actualizada para tu vista -->
+                <div class="info-card">
+                    <h5 class="section-title">Comentarios (<span id="comentarios-count">@Model.Comentarios.Count</span>)</h5>
+
+                    <!-- Contenedor de comentarios -->
+                    <div id="comentarios-container" class="mb-4" style="max-height: 400px; overflow-y: auto;">
+                        @if (Model.Comentarios.Any())
+                        {
+                            @foreach (var comentario in Model.Comentarios)
+                            {
+                                <div class="comment-item">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <strong>@comentario.NombreUsuario</strong>
+                                        <div class="text-end">
+                                            <small class="text-muted">@comentario.RolUsuario</small><br>
+                                            <small class="text-muted">@comentario.FechaComentario.ToString("dd/MM/yyyy HH:mm")</small>
+                                        </div>
+                                    </div>
+                                    <p class="mb-0">@Html.Raw(comentario.Comentario.Replace("\n", "<br/>"))</p>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted" id="no-comentarios-message">No hay comentarios aún.</p>
+                        }
+                    </div>
+
+                    <!-- Agregar nuevo comentario -->
+                    <div class="mt-3">
+                        <label for="nuevo-comentario-text" class="form-label"><strong>Agregar comentario:</strong></label>
+                        <textarea id="nuevo-comentario-text" class="form-control" rows="3" placeholder="Escriba su comentario aquí..."></textarea>
+                        <div id="comentario-error" class="text-danger mt-1" style="display: none;"></div>
+                        <div class="mt-2">
+                            <button type="button" id="btn-agregar-comentario" class="btn btn-success">
+                                <i class="fas fa-comment"></i> Agregar Comentario
+                            </button>
+                            <span id="comentario-loading" class="ms-2" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i> Agregando...
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Lateral -->
+            <div class="col-md-4">
+                <!-- Información del Creador -->
+                <div class="info-card">
+                    <h6 class="section-title">Creado por</h6>
+                    <p class="mb-1"><strong>@Model.NombreCreador</strong></p>
+                    <small class="text-muted">@Model.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</small>
+                </div>
+
+                <!-- Archivos Adjuntos -->
+                <div class="info-card mb-4">
+                    <h6 class="section-title">Archivos Adjuntos Existentes</h6>
+
+                    @* Damos un ID a este contenedor para poder agregar nuevos archivos dinámicamente *@
+                    <div id="existing-files-list">
+                        @if (Model.Adjuntos.Any())
+                        {
+                            @foreach (var adjunto in Model.Adjuntos)
+                            {
+                                <div class="attachment-item" id="adjunto-@adjunto.AdjuntoId">
+                                    <div>
+                                        <i class="fas fa-file"></i>
+                                        <strong>@adjunto.NombreArchivo</strong><br>
+                                        <small class="text-muted">@adjunto.FechaSubida.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </div>
+                                    <a href="@Url.Action("DownloadFile", "Administrador", new { id = adjunto.AdjuntoId })" class="btn-remove-file" title="Descargar Archivo">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p id="no-files-message" class="text-muted mb-3">No hay archivos adjuntos.</p>
+                        }
+                    </div>
+                </div>
+                <div class="info-card mb-4">
+                    <div class="card border-primary">
+                        <div class="card-header bg-light border-primary">
+                            <h6 class="mb-0 text-primary fw-bold">
+                                <i class="fas fa-paperclip me-2"></i>Adjuntar Nuevos Archivos
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            @* El input de archivo está oculto, igual que antes *@
+                            <input type="file" id="fileInput" class="d-none" multiple
+                                   accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.zip,.rar">
+
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <button type="button" id="selectFileBtn" class="btn btn-outline-primary"><i class="fas fa-plus me-1"></i>Agregar Archivo</button>
+                                        <button type="button" id="selectMultipleBtn" class="btn btn-outline-secondary"><i class="fas fa-copy me-1"></i>Selección Múltiple</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="alert alert-info mb-0 py-2">
+                                        <small><i class="fas fa-info-circle me-1"></i><strong>Tamaño máximo:</strong> 10MB</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* La previsualización de archivos no cambia *@
+                            <div id="filePreview" class="mt-4 d-none">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="text-primary mb-0 fw-bold"><i class="fas fa-list me-1"></i>Archivos para subir (<span id="fileCount">0</span>)</h6>
+                                    <button type="button" id="clearAllBtn" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash me-1"></i>Limpiar Todo</button>
+                                </div>
+                                <div id="fileList" class="border rounded bg-light p-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* --- BOTÓN DE ACCIÓN PARA SUBIR ARCHIVOS --- *@
+                <div class="info-card">
+                    <button type="button" id="uploadButton" class="btn btn-primary w-100">
+                        <i class="fas fa-upload"></i> Subir Adjuntos
+                    </button>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="info-card">
+                    @* <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button> *@
+                   @*  <a href="@Url.Action("Index", "Administrador")" class="btn btn-secondary w-100">
+                        <i class="fas fa-arrow-left"></i> Volver 
+                    </a> *@
+                    <a href="@returnUrl" class="btn btn-secondary w-100">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+
+                </div>
+            </div>
+        </div>
+    </form>
+    <div class="modal fade" id="modalAsignacion" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Asignación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Desea asignar este ticket a <strong id="nombreUsuarioModal"></strong>?</p>
+                    <div class="mb-3">
+                        <label for="comentarioAsignacion" class="form-label">Comentario (opcional):</label>
+                        <textarea class="form-control" id="comentarioAsignacion" rows="3"
+                                  placeholder="Agregar comentario sobre la asignación..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="confirmarAsignacion">
+                        <i class="fas fa-user-check me-1"></i>Asignar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnAgregarComentario = document.getElementById('btn-agregar-comentario');
+        const textareaComentario = document.getElementById('nuevo-comentario-text');
+        const comentariosContainer = document.getElementById('comentarios-container');
+        const comentariosCount = document.getElementById('comentarios-count');
+        const comentarioError = document.getElementById('comentario-error');
+        const comentarioLoading = document.getElementById('comentario-loading');
+        const noComentariosMessage = document.getElementById('no-comentarios-message');
+
+        btnAgregarComentario.addEventListener('click', function() {
+            const comentario = textareaComentario.value.trim();
+
+            if (!comentario) {
+                mostrarError('El comentario no puede estar vacío.');
+                return;
+            }
+
+            // Mostrar loading y deshabilitar botón
+            comentarioLoading.style.display = 'inline';
+            btnAgregarComentario.disabled = true;
+            ocultarError();
+
+            // Preparar datos para enviar
+            const formData = new FormData();
+            formData.append('ticketId', '@Model.TicketId');
+            formData.append('comentario', comentario);
+
+            // Agregar token antiforgery
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            formData.append('__RequestVerificationToken', token);
+
+            // Enviar petición AJAX
+            fetch('@Url.Action("AgregarComentario", "Administrador")', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Agregar el nuevo comentario al DOM
+                    agregarComentarioAlDOM(data.comentario);
+
+                    // Limpiar el textarea
+                    textareaComentario.value = '';
+
+                    // Actualizar contador
+                    const nuevoCount = parseInt(comentariosCount.textContent) + 1;
+                    comentariosCount.textContent = nuevoCount;
+
+                    // Ocultar mensaje de "no hay comentarios" si existe
+                    if (noComentariosMessage) {
+                        noComentariosMessage.style.display = 'none';
+                    }
+
+                    // Mostrar mensaje de éxito (opcional)
+                    mostrarMensajeExito('Comentario agregado exitosamente.');
+                } else {
+                    mostrarError(data.message || 'Error al agregar el comentario.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarError('Error de conexión. Intente nuevamente.');
+            })
+            .finally(() => {
+                // Ocultar loading y habilitar botón
+                comentarioLoading.style.display = 'none';
+                btnAgregarComentario.disabled = false;
+            });
+        });
+
+        // Función para agregar comentario al DOM
+        function agregarComentarioAlDOM(comentario) {
+            const fechaFormateada = new Date(comentario.fechaComentario).toLocaleString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const comentarioHTML = `
+                <div class="comment-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <strong>${comentario.nombreUsuario}</strong>
+                        <div class="text-end">
+                            <small class="text-muted">${comentario.rolUsuario}</small><br>
+                            <small class="text-muted">${fechaFormateada}</small>
+                        </div>
+                    </div>
+                    <p class="mb-0">${comentario.comentario.replace(/\n/g, '<br/>')}</p>
+                </div>
+            `;
+
+            comentariosContainer.insertAdjacentHTML('beforeend', comentarioHTML);
+
+            // Hacer scroll al nuevo comentario
+            comentariosContainer.scrollTop = comentariosContainer.scrollHeight;
+        }
+
+        // Función para mostrar errores
+        function mostrarError(mensaje) {
+            comentarioError.textContent = mensaje;
+            comentarioError.style.display = 'block';
+        }
+
+        // Función para ocultar errores
+        function ocultarError() {
+            comentarioError.style.display = 'none';
+        }
+
+        // Función para mostrar mensaje de éxito (opcional)
+        function mostrarMensajeExito(mensaje) {
+            // Crear alerta temporal
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show mt-2';
+            alert.innerHTML = `
+                ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            // Insertar después del botón
+            btnAgregarComentario.parentNode.insertAdjacentElement('afterend', alert);
+
+            // Auto-remover después de 3 segundos
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 3000);
+        }
+
+        // Permitir envío con Enter + Ctrl
+        textareaComentario.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                btnAgregarComentario.click();
+            }
+        });
+    });
+</script>
+
+
+
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            let asignacionOriginal = $('#selectAsignado').val();
+            let estadoOriginal = $('#selectEstado').val();
+            let prioridadOriginal = $('#selectPrioridad').val();
+
+            // Manejar click del botón actualizar estado
+            $('#btnActualizarEstado').click(function() {
+                const estadoSeleccionado = $('#selectEstado').val();
+                const textoEstado = $('#selectEstado option:selected').text();
+
+                // Verificar si hay cambios
+                if (estadoSeleccionado === estadoOriginal) {
+                    mostrarAlerta('info', 'No hay cambios en el estado');
+                    return;
+                }
+
+                // Confirmar la actualización
+                if (confirm(`¿Está seguro de cambiar el estado a "${textoEstado}"?`)) {
+                    actualizarEstado(estadoSeleccionado, textoEstado);
+                }
+            });
+
+            // Manejar click del botón actualizar prioridad
+            $('#btnActualizarPrioridad').click(function() {
+                const prioridadSeleccionada = $('#selectPrioridad').val();
+
+                // Verificar si hay cambios
+                if (prioridadSeleccionada === prioridadOriginal) {
+                    mostrarAlerta('info', 'No hay cambios en la prioridad');
+                    return;
+                }
+
+                // Confirmar la actualización
+                if (confirm(`¿Está seguro de cambiar la prioridad a "${prioridadSeleccionada}"?`)) {
+                    actualizarPrioridad(prioridadSeleccionada);
+                }
+            });
+
+            // Función para actualizar estado
+            function actualizarEstado(estadoId, textoEstado) {
+                const btn = $('#btnActualizarEstado');
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                $.ajax({
+                    url: '@Url.Action("ActualizarEstado", "Administrador")',
+                    type: 'POST',
+                    data: {
+                        ticketId: @Model.TicketId,
+                        estadoId: estadoId
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            mostrarAlerta('success', response.message);
+                            estadoOriginal = estadoId;
+
+                            // Actualizar el estado en el header
+                            $('.ticket-header .col-md-4 small').text('Estado: ' + response.nuevoEstado);
+                        } else {
+                            mostrarAlerta('danger', response.message);
+                            // Revertir selección
+                            $('#selectEstado').val(estadoOriginal);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error al actualizar estado:', error);
+                        mostrarAlerta('danger', 'Error al actualizar el estado');
+                        // Revertir selección
+                        $('#selectEstado').val(estadoOriginal);
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html('<i class="fas fa-sync-alt"></i>');
+                    }
+                });
+            }
+
+            // Función para actualizar prioridad
+            function actualizarPrioridad(prioridad) {
+                const btn = $('#btnActualizarPrioridad');
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                $.ajax({
+                    url: '@Url.Action("ActualizarPrioridad", "Administrador")',
+                    type: 'POST',
+                    data: {
+                        ticketId: @Model.TicketId,
+                        prioridad: prioridad
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            mostrarAlerta('success', response.message);
+                            prioridadOriginal = prioridad;
+
+                            // Actualizar la prioridad en el header
+                            const statusBadge = $('.status-badge');
+                            statusBadge.removeClass('priority-crítico priority-importante priority-baja');
+                            statusBadge.addClass('priority-' + prioridad.toLowerCase());
+                            statusBadge.text(prioridad);
+                        } else {
+                            mostrarAlerta('danger', response.message);
+                            // Revertir selección
+                            $('#selectPrioridad').val(prioridadOriginal);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error al actualizar prioridad:', error);
+                        mostrarAlerta('danger', 'Error al actualizar la prioridad');
+                        // Revertir selección
+                        $('#selectPrioridad').val(prioridadOriginal);
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html('<i class="fas fa-exclamation-triangle"></i>');
+                    }
+                });
+            }
+
+            // Manejar click del botón asignar (código original)
+            $('#btnAsignar').click(function() {
+                const usuarioSeleccionado = $('#selectAsignado').val();
+                const textoUsuario = $('#selectAsignado option:selected').text();
+
+                // Verificar si hay cambios
+                if (usuarioSeleccionado === asignacionOriginal) {
+                    mostrarAlerta('info', 'No hay cambios en la asignación');
+                    return;
+                }
+
+                // Configurar modal
+                if (usuarioSeleccionado) {
+                    $('#nombreUsuarioModal').text(textoUsuario);
+                } else {
+                    $('#nombreUsuarioModal').text('Sin asignar (quitar asignación actual)');
+                }
+
+                // Limpiar comentario anterior
+                $('#comentarioAsignacion').val('');
+
+                // Mostrar modal
+                $('#modalAsignacion').modal('show');
+            });
+
+            // Confirmar asignación (código original)
+            $('#confirmarAsignacion').click(function() {
+                const usuarioId = $('#selectAsignado').val();
+                const comentario = $('#comentarioAsignacion').val();
+                const ticketId = @Model.TicketId;
+
+                // Deshabilitar botón mientras se procesa
+                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Procesando...');
+
+                $.ajax({
+                    url: '@Url.Action("AsignarTicket", "Administrador")',
+                    type: 'POST',
+                    data: {
+                        ticketId: ticketId,
+                        usuarioAsignadoId: usuarioId || null,
+                        comentarioAsignacion: comentario
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            let mensaje = response.message;
+
+                            // Agregar información adicional si cambió el estado
+                            if (response.estadoCambiado) {
+                                mensaje += ' - Estado cambiado a "Asignado"';
+                            }
+
+                            mostrarAlerta('success', mensaje);
+
+                            // Actualizar la asignación original para futuras comparaciones
+                            asignacionOriginal = usuarioId;
+
+                            // Cerrar modal
+                            $('#modalAsignacion').modal('hide');
+
+                            // Recargar la página para reflejar todos los cambios
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            mostrarAlerta('danger', response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error en asignación:', error);
+                        mostrarAlerta('danger', 'Error al procesar la asignación');
+                    },
+                    complete: function() {
+                        // Rehabilitar botón
+                        $('#confirmarAsignacion').prop('disabled', false).html('<i class="fas fa-user-check me-1"></i>Asignar');
+                    }
+                });
+            });
+
+            // Función para mostrar alertas
+            function mostrarAlerta(tipo, mensaje) {
+                const alertaHtml = `
+                    <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+                        ${mensaje}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+
+                // Agregar alerta al inicio del formulario
+                $('#editTicketForm').prepend(alertaHtml);
+
+                // Auto-dismiss después de 5 segundos
+                setTimeout(function() {
+                    $('.alert').fadeOut();
+                }, 5000);
+            }
+        });
+    </script>
+
+    <script>
+        // Obtener los elementos del DOM
+        const fileInput = document.getElementById('fileInput');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const selectMultipleBtn = document.getElementById('selectMultipleBtn');
+        const filePreview = document.getElementById('filePreview');
+        const fileList = document.getElementById('fileList'); // Nuevo: Contenedor para la lista de archivos
+        const fileCountSpan = document.getElementById('fileCount'); // Nuevo: Para actualizar el contador
+        const clearAllBtn = document.getElementById('clearAllBtn'); // Nuevo: Botón para limpiar todo
+
+        // Array para almacenar los archivos seleccionados para subir
+        let filesToUpload = [];
+
+        // Vincular el click de los botones al input de tipo file
+        selectFileBtn.addEventListener('click', function() {
+            // Desactiva la selección múltiple si solo quieres agregar un archivo
+            fileInput.removeAttribute('multiple');
+            fileInput.click(); // Simula el click en el input de archivo
+        });
+
+        selectMultipleBtn.addEventListener('click', function() {
+            // Activa la selección múltiple
+            fileInput.setAttribute('multiple', 'multiple');
+            fileInput.click(); // Simula el click en el input de archivo
+        });
+
+        // Manejar el evento 'change' del input de archivo
+        fileInput.addEventListener('change', function(e) {
+            const newFiles = Array.from(e.target.files);
+
+            // Si se selecciona un solo archivo y el input no tiene 'multiple', reemplaza los archivos
+            if (!fileInput.hasAttribute('multiple')) {
+                filesToUpload = newFiles;
+            } else {
+                // Si es selección múltiple, agrega los nuevos archivos y filtra duplicados por nombre
+                newFiles.forEach(newFile => {
+                    if (!filesToUpload.some(existingFile => existingFile.name === newFile.name && existingFile.size === newFile.size)) {
+                        filesToUpload.push(newFile);
+                    }
+                });
+            }
+
+            updateFileList();
+        });
+
+        // Función para actualizar la lista de archivos en la previsualización
+        function updateFileList() {
+            fileList.innerHTML = ''; // Limpiar la lista actual
+            if (filesToUpload.length > 0) {
+                filePreview.classList.remove('d-none');
+                filesToUpload.forEach((file, index) => {
+                    const fileDiv = document.createElement('div');
+                    fileDiv.className = 'attachment-item';
+                    fileDiv.innerHTML = `
+                        <div>
+                            <i class="fas fa-file"></i>
+                            <strong>${file.name}</strong><br>
+                            <small class="text-muted">${(file.size / 1024).toFixed(2)} KB</small>
+                        </div>
+                        <button type="button" class="btn-remove-file" onclick="removeFile(${index})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    fileList.appendChild(fileDiv);
+                });
+            } else {
+                filePreview.classList.add('d-none');
+            }
+            fileCountSpan.textContent = filesToUpload.length; // Actualizar el contador
+        }
+
+        // Función para remover un archivo de la selección
+        // Esta función debe ser global o accesible desde el HTML
+        window.removeFile = function(index) {
+            filesToUpload.splice(index, 1); // Elimina el archivo del array
+            updateFileList(); // Vuelve a renderizar la lista
+            // Resetear el input file para permitir seleccionar el mismo archivo si es necesario
+            fileInput.value = '';
+        };
+
+        // Limpiar todos los archivos seleccionados
+        clearAllBtn.addEventListener('click', function() {
+            filesToUpload = []; // Vaciar el array
+            fileInput.value = ''; // Limpiar el input file
+            updateFileList(); // Actualizar la vista
+        });
+
+        // --- Lógica para la subida de archivos vía AJAX ---
+        const uploadButton = document.getElementById('uploadButton');
+        uploadButton.addEventListener('click', async function() {
+            if (filesToUpload.length === 0) {
+                alert('Por favor, selecciona al menos un archivo para subir.');
+                return;
+            }
+
+            const formData = new FormData();
+            const ticketId = @Model.TicketId; // Asegúrate de que Model.TicketId esté disponible
+
+            formData.append('ticketId', ticketId);
+
+            // Agregar cada archivo al FormData
+            filesToUpload.forEach(file => {
+                formData.append('nuevosAdjuntos', file);
+            });
+
+            // Agregar token antiforgery
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            formData.append('__RequestVerificationToken', token);
+
+
+            // Deshabilitar botón y mostrar spinner
+            uploadButton.disabled = true;
+            uploadButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Subiendo...';
+
+            try {
+                const response = await fetch('@Url.Action("SubirAdjuntos", "Administrador")', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    // Limpiar la lista de archivos para subir
+                    filesToUpload = [];
+                    fileInput.value = '';
+                    updateFileList(); // Ocultar la sección de previsualización
+
+                    // Opcional: Actualizar la lista de archivos existentes en el DOM
+                    const existingFilesList = document.getElementById('existing-files-list');
+                    const noFilesMessage = document.getElementById('no-files-message');
+
+                    if (noFilesMessage) {
+                        noFilesMessage.remove(); // Eliminar el mensaje "No hay archivos adjuntos"
+                    }
+
+                    data.nuevosArchivos.forEach(adjunto => {
+                        const adjuntoDiv = document.createElement('div');
+                        adjuntoDiv.className = 'attachment-item';
+                        adjuntoDiv.id = `adjunto-${adjunto.adjuntoId}`;
+                        adjuntoDiv.innerHTML = `
+                            <div>
+                                <i class="fas fa-file"></i>
+                                <strong>${adjunto.nombreArchivo}</strong><br>
+                                <small class="text-muted">${adjunto.fechaSubida}</small>
+                            </div>
+                            <a href="${adjunto.urlDescarga}" class="btn-remove-file" title="Descargar Archivo">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        `;
+                        existingFilesList.appendChild(adjuntoDiv);
+                    });
+
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error al subir archivos:', error);
+                alert('Ocurrió un error al subir los archivos. Intenta de nuevo.');
+            } finally {
+                // Habilitar botón y restaurar texto
+                uploadButton.disabled = false;
+                uploadButton.innerHTML = '<i class="fas fa-upload"></i> Subir Adjuntos';
+            }
+        });
+    </script>
+}
