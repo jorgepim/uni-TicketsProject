@@ -707,7 +707,77 @@ namespace TicketsApp.Controllers
             return userIdClaim != null ? int.Parse(userIdClaim.Value) : 0;
         }
 
+        // Método para actualizar el Estado del ticket
+        [HttpPost]
+        public async Task<IActionResult> ActualizarEstado(int ticketId, int estadoId)
+        {
+            try
+            {
+                var ticket = await _context.Tickets.FindAsync(ticketId);
+                if (ticket == null)
+                {
+                    return Json(new { success = false, message = "Ticket no encontrado" });
+                }
 
+                // Verificar que el estado existe
+                var estado = await _context.EstadosTicket.FindAsync(estadoId);
+                if (estado == null)
+                {
+                    return Json(new { success = false, message = "Estado no válido" });
+                }
+
+                // Actualizar el estado
+                ticket.EstadoId = estadoId;
+                await _context.SaveChangesAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Estado actualizado a '{estado.NombreEstado}' correctamente",
+                    nuevoEstado = estado.NombreEstado
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error al actualizar el estado: " + ex.Message });
+            }
+        }
+
+        // Método para actualizar la Prioridad del ticket
+        [HttpPost]
+        public async Task<IActionResult> ActualizarPrioridad(int ticketId, string prioridad)
+        {
+            try
+            {
+                // Validar que la prioridad sea válida
+                var prioridadesValidas = new List<string> { "Crítico", "Importante", "Baja" };
+                if (!prioridadesValidas.Contains(prioridad))
+                {
+                    return Json(new { success = false, message = "Prioridad no válida" });
+                }
+
+                var ticket = await _context.Tickets.FindAsync(ticketId);
+                if (ticket == null)
+                {
+                    return Json(new { success = false, message = "Ticket no encontrado" });
+                }
+
+                // Actualizar la prioridad
+                ticket.Prioridad = prioridad;
+                await _context.SaveChangesAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Prioridad actualizada a '{prioridad}' correctamente",
+                    nuevaPrioridad = prioridad
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error al actualizar la prioridad: " + ex.Message });
+            }
+        }
         // Agregar este método en tu controlador
         [HttpPost]
         [ValidateAntiForgeryToken]

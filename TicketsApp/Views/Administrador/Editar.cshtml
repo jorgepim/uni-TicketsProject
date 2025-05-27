@@ -141,23 +141,33 @@
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label asp-for="EstadoId" class="form-label"><strong>Estado:</strong></label>
-                            <select asp-for="EstadoId" class="form-select" disabled="@(!esEditable)">
-                                @foreach (var estado in ViewBag.Estados as List<EstadoTicket>)
-                                {
-                                    <option value="@estado.EstadoId">@estado.NombreEstado</option>
-                                }
-                            </select>
+                            <div class="d-flex gap-2">
+                                <select asp-for="EstadoId" class="form-select" id="selectEstado">
+                                    @foreach (var estado in ViewBag.Estados as List<EstadoTicket>)
+                                    {
+                                        <option value="@estado.EstadoId">@estado.NombreEstado</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-success btn-sm" id="btnActualizarEstado" title="Actualizar Estado">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
                             <span asp-validation-for="EstadoId" class="text-danger"></span>
                         </div>
 
                         <div class="col-md-4">
                             <label asp-for="Prioridad" class="form-label"><strong>Prioridad:</strong></label>
-                            <select asp-for="Prioridad" class="form-select" disabled="@(!esEditable)">
-                                @foreach (var prioridad in ViewBag.Prioridades as List<string>)
-                                {
-                                    <option value="@prioridad">@prioridad</option>
-                                }
-                            </select>
+                            <div class="d-flex gap-2">
+                                <select asp-for="Prioridad" class="form-select" id="selectPrioridad">
+                                    @foreach (var prioridad in ViewBag.Prioridades as List<string>)
+                                    {
+                                        <option value="@prioridad">@prioridad</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-warning btn-sm" id="btnActualizarPrioridad" title="Actualizar Prioridad">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </button>
+                            </div>
                             <span asp-validation-for="Prioridad" class="text-danger"></span>
                         </div>
 
@@ -518,8 +528,120 @@
     <script>
         $(document).ready(function() {
             let asignacionOriginal = $('#selectAsignado').val();
+            let estadoOriginal = $('#selectEstado').val();
+            let prioridadOriginal = $('#selectPrioridad').val();
 
-            // Manejar click del botón asignar
+            // Manejar click del botón actualizar estado
+            $('#btnActualizarEstado').click(function() {
+                const estadoSeleccionado = $('#selectEstado').val();
+                const textoEstado = $('#selectEstado option:selected').text();
+
+                // Verificar si hay cambios
+                if (estadoSeleccionado === estadoOriginal) {
+                    mostrarAlerta('info', 'No hay cambios en el estado');
+                    return;
+                }
+
+                // Confirmar la actualización
+                if (confirm(`¿Está seguro de cambiar el estado a "${textoEstado}"?`)) {
+                    actualizarEstado(estadoSeleccionado, textoEstado);
+                }
+            });
+
+            // Manejar click del botón actualizar prioridad
+            $('#btnActualizarPrioridad').click(function() {
+                const prioridadSeleccionada = $('#selectPrioridad').val();
+
+                // Verificar si hay cambios
+                if (prioridadSeleccionada === prioridadOriginal) {
+                    mostrarAlerta('info', 'No hay cambios en la prioridad');
+                    return;
+                }
+
+                // Confirmar la actualización
+                if (confirm(`¿Está seguro de cambiar la prioridad a "${prioridadSeleccionada}"?`)) {
+                    actualizarPrioridad(prioridadSeleccionada);
+                }
+            });
+
+            // Función para actualizar estado
+            function actualizarEstado(estadoId, textoEstado) {
+                const btn = $('#btnActualizarEstado');
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                $.ajax({
+                    url: '@Url.Action("ActualizarEstado", "Administrador")',
+                    type: 'POST',
+                    data: {
+                        ticketId: @Model.TicketId,
+                        estadoId: estadoId
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            mostrarAlerta('success', response.message);
+                            estadoOriginal = estadoId;
+
+                            // Actualizar el estado en el header
+                            $('.ticket-header .col-md-4 small').text('Estado: ' + response.nuevoEstado);
+                        } else {
+                            mostrarAlerta('danger', response.message);
+                            // Revertir selección
+                            $('#selectEstado').val(estadoOriginal);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error al actualizar estado:', error);
+                        mostrarAlerta('danger', 'Error al actualizar el estado');
+                        // Revertir selección
+                        $('#selectEstado').val(estadoOriginal);
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html('<i class="fas fa-sync-alt"></i>');
+                    }
+                });
+            }
+
+            // Función para actualizar prioridad
+            function actualizarPrioridad(prioridad) {
+                const btn = $('#btnActualizarPrioridad');
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                $.ajax({
+                    url: '@Url.Action("ActualizarPrioridad", "Administrador")',
+                    type: 'POST',
+                    data: {
+                        ticketId: @Model.TicketId,
+                        prioridad: prioridad
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            mostrarAlerta('success', response.message);
+                            prioridadOriginal = prioridad;
+
+                            // Actualizar la prioridad en el header
+                            const statusBadge = $('.status-badge');
+                            statusBadge.removeClass('priority-crítico priority-importante priority-baja');
+                            statusBadge.addClass('priority-' + prioridad.toLowerCase());
+                            statusBadge.text(prioridad);
+                        } else {
+                            mostrarAlerta('danger', response.message);
+                            // Revertir selección
+                            $('#selectPrioridad').val(prioridadOriginal);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error al actualizar prioridad:', error);
+                        mostrarAlerta('danger', 'Error al actualizar la prioridad');
+                        // Revertir selección
+                        $('#selectPrioridad').val(prioridadOriginal);
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html('<i class="fas fa-exclamation-triangle"></i>');
+                    }
+                });
+            }
+
+            // Manejar click del botón asignar (código original)
             $('#btnAsignar').click(function() {
                 const usuarioSeleccionado = $('#selectAsignado').val();
                 const textoUsuario = $('#selectAsignado option:selected').text();
@@ -544,7 +666,7 @@
                 $('#modalAsignacion').modal('show');
             });
 
-            // Confirmar asignación
+            // Confirmar asignación (código original)
             $('#confirmarAsignacion').click(function() {
                 const usuarioId = $('#selectAsignado').val();
                 const comentario = $('#comentarioAsignacion').val();
