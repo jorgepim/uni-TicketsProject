@@ -100,13 +100,14 @@
         <div class="d-flex align-items-center gap-4">
 
             <!-- Notificaciones -->
-            <button type="button" class="icon-btn" data-bs-toggle="modal" data-bs-target="#modalNotificaciones">
+            <button type="button" class="icon-btn position-relative" data-bs-toggle="modal" data-bs-target="#modalNotificaciones" id="btnCampana">
                 <i class="fas fa-bell"></i>
                 @if (totalNoLeidas > 0)
                 {
-                    <span class="badge-notif"></span>
+                    <span class="badge-notif" id="badgeNotificaciones"></span>
                 }
             </button>
+
 
             <!-- Perfil -->
             <div class="dropdown">
@@ -155,18 +156,26 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const modal = document.getElementById('modalNotificaciones');
+            const badge = document.getElementById('badgeNotificaciones');
+
             modal.addEventListener('show.bs.modal', function () {
+                // Cargar contenido
                 fetch('/Notificaciones/Ultimas')
                     .then(res => res.text())
                     .then(html => {
                         document.getElementById('contenidoNotificaciones').innerHTML = html;
-                    })
-                    .catch(err => {
-                        document.getElementById('contenidoNotificaciones').innerHTML =
-                            '<div class="text-danger">Error al cargar notificaciones</div>';
                     });
+
+                // Marcar como leídas
+                fetch('/Notificaciones/MarcarComoLeidas', {
+                    method: 'POST'
+                }).then(() => {
+                    // Ocultar el indicador rojo visualmente
+                    if (badge) badge.style.display = 'none';
+                });
             });
         });
     </script>
+
 </body>
 </html>
