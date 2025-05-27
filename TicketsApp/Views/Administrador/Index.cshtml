@@ -285,7 +285,7 @@
                                     <a href="@Url.Action("Detalles", new { id = ticket.TicketId })" class="action-btn view" title="Ver detalles">
                                         <i class="icon-eye"></i>
                                     </a>
-                                    <a href="@Url.Action("Editar", new { id = ticket.TicketId })" class="action-btn edit" title="Editar">
+                                    <a href="@Url.Action("Editar", new { id = ticket.TicketId, returnUrl = Url.Action("Index", "Administrador") })" class="action-btn edit" title="Editar">
                                         <i class="icon-edit"></i>
                                     </a>
                                     <button class="action-btn more" title="Más opciones">

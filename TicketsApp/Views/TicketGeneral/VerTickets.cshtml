@@ -48,25 +48,28 @@
                                         @(ticket.Prioridad == "Crítico" ? "bg-danger" :
                                                                     ticket.Prioridad == "Importante" ? "bg-warning text-dark" :
                                                                     "bg-success")">
-                                                                               @ticket.Prioridad
-                                                                           </span>
-                                                                       </td>
-                                                                       <td>
-                                                                           <span class="badge
+                                @ticket.Prioridad
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge
                                         @(ticket.Estado == "Resuelto" ? "bg-success" :
                                                                     ticket.Estado == "En Proceso" ? "bg-warning text-dark" :
                                                                     "bg-secondary")">
-                        @ticket.Estado
-                    </span>
-                </td>
-                <td>@(ticket.FechaCreacion?.ToShortDateString() ?? "N/A")</td>
-                <td>
-                    <a href="@Url.Action("EditarTickets", "TicketGeneral", new { id = ticket.TicketId })" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-edit me-1"></i>Editar
-                    </a>
-                </td>
-            </tr>
-                        }
+                                @ticket.Estado
+                            </span>
+                        </td>
+                        <td>@(ticket.FechaCreacion?.ToShortDateString() ?? "N/A")</td>
+                        <td>
+                           @*  <a href="@Url.Action("EditarTickets", "TicketGeneral", new { id = ticket.TicketId })" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit me-1"></i>Editar
+                            </a> *@
+                            <a href="@Url.Action("Editar", "Administrador", new { id = ticket.TicketId, returnUrl = Context.Request.Path + Context.Request.QueryString })" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit me-1"></i>Editar
+                            </a>
+                        </td>
+                    </tr>
+                }
             </tbody>
         </table>
     }

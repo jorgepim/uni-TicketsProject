@@ -3,6 +3,7 @@
     ViewData["Title"] = $"Editar Ticket TK-{Model.TicketId}";
     Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
     bool esEditable = (bool)(ViewBag.EsEditable ?? false);
+    string returnUrl = ViewBag.ReturnUrl ?? Url.Action("Index", "Administrador");
 }
 
 @section Styles {
@@ -346,9 +347,13 @@
                     @* <button type="submit" class="btn btn-primary w-100 mb-2">
                         <i class="fas fa-save"></i> Guardar Cambios
                     </button> *@
-                    <a href="@Url.Action("Index", "Administrador")" class="btn btn-secondary w-100">
-                        <i class="fas fa-arrow-left"></i> Volver al listado
+                   @*  <a href="@Url.Action("Index", "Administrador")" class="btn btn-secondary w-100">
+                        <i class="fas fa-arrow-left"></i> Volver 
+                    </a> *@
+                    <a href="@returnUrl" class="btn btn-secondary w-100">
+                        <i class="fas fa-arrow-left"></i> Volver
                     </a>
+
                 </div>
             </div>
         </div>

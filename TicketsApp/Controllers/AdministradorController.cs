@@ -629,7 +629,7 @@ namespace TicketsApp.Controllers
         // Agregar esta acción al AdministradorController
 
         [HttpGet]
-        public async Task<IActionResult> Editar(int id)
+        public async Task<IActionResult> Editar(int id, string returnUrl = null)
         {
             // Consulta principal del ticket
             var ticket = await _context.Tickets
@@ -792,6 +792,7 @@ namespace TicketsApp.Controllers
                 Adjuntos = adjuntos
             };
 
+            ViewBag.ReturnUrl = returnUrl;
             return View(model);
         }
         private int GetCurrentUserId()
