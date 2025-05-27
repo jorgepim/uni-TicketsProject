@@ -5,16 +5,12 @@
     Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
 }
 
-<style>
-    .filtro-btn {
-        background-color: #4a6793;
-        color: white;
-        font-weight: 600;
-        border-radius: 20px;
-        padding: 8px 20px;
-        border: none;
-    }
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css" />
+}
 
+<style>
     .tabla-contenedor {
         border-radius: 16px;
         overflow: hidden;
@@ -27,10 +23,15 @@
         border-spacing: 0 8px;
     }
 
-    .tabla-tickets th, .tabla-tickets td {
-        padding: 12px;
-        text-align: left;
-    }
+        .tabla-tickets th, .tabla-tickets td {
+            padding: 12px;
+            text-align: left;
+        }
+
+        .tabla-tickets thead {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
 
     .btn-detalles {
         background-color: #4a6793;
@@ -47,23 +48,11 @@
         border-radius: 20px;
         padding: 30px;
     }
-
-    .tabla-tickets thead {
-        background-color: #f2f2f2;
-        font-weight: bold;
-    }
 </style>
 
 <div class="container mt-4">
-
     <div class="seccion-tickets">
         <h4 class="text-primary fw-semibold mb-4">Mis Tickets Creados</h4>
-
-        <!-- Filtros visuales opcionales -->
-        <div class="mb-4 d-flex gap-3">
-            <button class="filtro-btn">Categoría</button>
-            <button class="filtro-btn">Estado</button>
-        </div>
 
         @if (!Model.Any())
         {
@@ -71,9 +60,8 @@
         }
         else
         {
-            <!-- Tabla -->
             <div class="tabla-contenedor">
-                <table class="tabla-tickets w-100">
+                <table id="tablaTicket" class="tabla-tickets display nowrap w-100">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -82,7 +70,7 @@
                             <th>Estado</th>
                             <th>Prioridad</th>
                             <th>Fecha de Creación</th>
-                            <th></th>
+                            <th>Acción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,3 +96,19 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#tablaTicket').DataTable({
+                responsive: true,
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-MX.json"
+                }
+            });
+        });
+    </script>
+}
