@@ -295,7 +295,7 @@ namespace TicketsApp.Controllers
             // Filtrar Admin si es tipo Externo
             if (tipoUsuario == "Externo")
             {
-                roles = roles.Where(r =>( r.NombreRol != "Administrador" && r.NombreRol != "Tecnico")).ToList();
+                roles = roles.Where(r => (r.NombreRol != "Administrador" && r.NombreRol != "Tecnico")).ToList();
             }
             else if (tipoUsuario == "Interno")
             {
@@ -305,6 +305,224 @@ namespace TicketsApp.Controllers
             var result = roles.Select(r => new { value = r.RolId, text = r.NombreRol }).ToList();
             return Json(result);
         }
+
+        // Método GET para obtener usuarios disponibles según la categoría del ticket
+        [HttpGet]
+        public async Task<IActionResult> ObtenerUsuariosParaAsignacion(int ticketId)
+        {
+            try
+            {
+                // Obtener ticket con su categoría
+                var ticket = await _context.Tickets
+                    .Where(t => t.TicketId == ticketId)
+                    .FirstOrDefaultAsync();
+
+                if (ticket == null)
+                {
+                    return NotFound("Ticket no encontrado");
+                }
+
+                // Verificar si el ticket puede ser editado (no cerrado ni cancelado)
+                var estadoTicket = await _context.EstadosTicket
+                    .Where(e => e.EstadoId == ticket.EstadoId)
+                    .FirstOrDefaultAsync();
+
+                bool esEditable = estadoTicket?.NombreEstado != "Cerrado" &&
+                                 estadoTicket?.NombreEstado != "Cancelado";
+
+                if (!esEditable)
+                {
+                    return Json(new { success = false, message = "El ticket no puede ser reasignado porque está cerrado o cancelado" });
+                }
+
+                // Obtener todos los administradores activos
+                var administradores = await (from u in _context.Usuarios
+                                             join r in _context.Roles on u.RolId equals r.RolId
+                                             where u.TipoUsuario == "Interno" &&
+                                                   u.Estado == true &&
+                                                   r.NombreRol == "Administrador"
+                                             select new
+                                             {
+                                                 u.UsuarioId,
+                                                 u.Nombre,
+                                                 u.Apellido,
+                                                 NombreRol = r.NombreRol,
+                                                 Tipo = "Administrador"
+                                             }).ToListAsync();
+
+                // Obtener técnicos de la categoría específica del ticket
+                var tecnicos = await (from u in _context.Usuarios
+                                      join r in _context.Roles on u.RolId equals r.RolId
+                                      join uc in _context.UsuariosCategorias on u.UsuarioId equals uc.UsuarioId
+                                      where u.TipoUsuario == "Interno" &&
+                                            u.Estado == true &&
+                                            r.NombreRol == "Técnico" &&
+                                            uc.CategoriaId == ticket.CategoriaId
+                                      select new
+                                      {
+                                          u.UsuarioId,
+                                          u.Nombre,
+                                          u.Apellido,
+                                          NombreRol = r.NombreRol,
+                                          Tipo = "Técnico"
+                                      }).ToListAsync();
+
+                // Combinar administradores y técnicos
+                var usuariosDisponibles = administradores.Concat(tecnicos)
+                    .OrderBy(u => u.Tipo)
+                    .ThenBy(u => u.Nombre)
+                    .ToList();
+
+                return Json(new
+                {
+                    success = true,
+                    usuarios = usuariosDisponibles,
+                    esEditable = esEditable
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener usuarios para asignación del ticket {TicketId}", ticketId);
+                return Json(new { success = false, message = "Error interno del servidor" });
+            }
+        }
+
+
+        // Método POST para asignar técnico o administrador al ticket
+        [HttpPost]
+        public async Task<IActionResult> AsignarTicket(int ticketId, int? usuarioAsignadoId, string? comentarioAsignacion)
+        {
+            try
+            {
+                // Validar que el ticket existe
+                var ticket = await _context.Tickets
+                    .Where(t => t.TicketId == ticketId)
+                    .FirstOrDefaultAsync();
+
+                if (ticket == null)
+                {
+                    return Json(new { success = false, message = "Ticket no encontrado" });
+                }
+
+                // Verificar si el ticket puede ser editado
+                var estadoTicket = await _context.EstadosTicket
+                    .Where(e => e.EstadoId == ticket.EstadoId)
+                    .FirstOrDefaultAsync();
+
+                bool esEditable = estadoTicket?.NombreEstado != "Cerrado" &&
+                                 estadoTicket?.NombreEstado != "Cancelado";
+
+                if (!esEditable)
+                {
+                    return Json(new { success = false, message = "No se puede asignar un ticket que está cerrado o cancelado" });
+                }
+
+                // Si se está asignando a alguien, validar que el usuario existe y está activo
+                if (usuarioAsignadoId.HasValue)
+                {
+                    var usuarioAsignado = await _context.Usuarios
+                        .Where(u => u.UsuarioId == usuarioAsignadoId.Value && u.Estado == true)
+                        .FirstOrDefaultAsync();
+
+                    if (usuarioAsignado == null)
+                    {
+                        return Json(new { success = false, message = "Usuario asignado no encontrado o inactivo" });
+                    }
+
+                    // Validar que si es técnico, pertenezca a la categoría del ticket
+                    if (usuarioAsignado.TipoUsuario == "Interno")
+                    {
+                        var rol = await _context.Roles
+                            .Where(r => r.RolId == usuarioAsignado.RolId)
+                            .FirstOrDefaultAsync();
+
+                        if (rol?.NombreRol == "Técnico")
+                        {
+                            var tieneCategoria = await _context.UsuariosCategorias
+                                .AnyAsync(uc => uc.UsuarioId == usuarioAsignado.UsuarioId &&
+                                               uc.CategoriaId == ticket.CategoriaId);
+
+                            if (!tieneCategoria)
+                            {
+                                return Json(new { success = false, message = "El técnico no pertenece a la categoría de este ticket" });
+                            }
+                        }
+                    }
+                }
+
+                // Verificar si ya existe una asignación para este ticket
+                var asignacionExistente = await _context.Asignaciones
+                    .Where(a => a.TicketId == ticketId)
+                    .OrderByDescending(a => a.FechaAsignacion)
+                    .FirstOrDefaultAsync();
+
+                bool esPrimeraAsignacion = asignacionExistente == null;
+                string mensajeAccion = "";
+
+                if (asignacionExistente != null)
+                {
+                    // ACTUALIZAR asignación existente
+                    asignacionExistente.UsuarioAsignadoId = usuarioAsignadoId;
+                    asignacionExistente.FechaAsignacion = DateTime.Now;
+                    asignacionExistente.ComentarioAsignacion = comentarioAsignacion;
+
+                    _context.Asignaciones.Update(asignacionExistente);
+                    mensajeAccion = usuarioAsignadoId.HasValue ? "Ticket reasignado correctamente" : "Asignación removida correctamente";
+                }
+                else
+                {
+                    // CREAR nueva asignación (primera vez)
+                    var nuevaAsignacion = new Asignacion
+                    {
+                        TicketId = ticketId,
+                        UsuarioAsignadoId = usuarioAsignadoId,
+                        FechaAsignacion = DateTime.Now,
+                        ComentarioAsignacion = comentarioAsignacion
+                    };
+
+                    _context.Asignaciones.Add(nuevaAsignacion);
+                    mensajeAccion = "Ticket asignado correctamente";
+
+                    // Solo cambiar estado a 'Asignado' (EstadoId = 2) en la PRIMERA asignación
+                    if (usuarioAsignadoId.HasValue)
+                    {
+                        ticket.EstadoId = 2; // Estado 'Asignado'
+                        _context.Tickets.Update(ticket);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Obtener información del usuario asignado para la respuesta
+                string nombreUsuarioAsignado = "Sin asignar";
+                if (usuarioAsignadoId.HasValue)
+                {
+                    var usuario = await _context.Usuarios
+                        .Where(u => u.UsuarioId == usuarioAsignadoId.Value)
+                        .FirstOrDefaultAsync();
+
+                    if (usuario != null)
+                    {
+                        nombreUsuarioAsignado = $"{usuario.Nombre} {usuario.Apellido}";
+                    }
+                }
+
+                return Json(new
+                {
+                    success = true,
+                    message = mensajeAccion,
+                    nombreUsuarioAsignado = nombreUsuarioAsignado,
+                    esPrimeraAsignacion = esPrimeraAsignacion,
+                    estadoCambiado = esPrimeraAsignacion && usuarioAsignadoId.HasValue
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al asignar ticket {TicketId}", ticketId);
+                return Json(new { success = false, message = "Error interno del servidor" });
+            }
+        }
+
 
 
         // Agregar esta acción al AdministradorController
@@ -349,6 +567,10 @@ namespace TicketsApp.Controllers
                 .Where(e => e.EstadoId == ticket.EstadoId)
                 .FirstOrDefaultAsync();
 
+            // Verificar si el ticket es editable (no cerrado ni cancelado)
+            bool esEditable = estado?.NombreEstado != "Cerrado" &&
+                             estado?.NombreEstado != "Cancelado";
+
             // Obtener asignación actual (la más reciente)
             var asignacionActual = await _context.Asignaciones
                 .Where(a => a.TicketId == ticket.TicketId)
@@ -363,6 +585,7 @@ namespace TicketsApp.Controllers
             Console.WriteLine($"Ticket ID: {ticket.TicketId}");
             Console.WriteLine($"Asignación actual: {asignacionActual?.UsuarioAsignadoId}");
             Console.WriteLine($"Usuario asignado: {usuarioAsignado?.UsuarioId} - {usuarioAsignado?.Nombre}");
+            Console.WriteLine($"Es editable: {esEditable}");
 
             // Obtener comentarios con usuarios
             var comentariosQuery = from c in _context.ComentariosTicket
@@ -375,9 +598,7 @@ namespace TicketsApp.Controllers
                                    {
                                        ComentarioId = c.ComentarioId,
                                        Comentario = c.Comentario,
-                                       //FechaComentario = c.FechaComentario,
                                        FechaComentario = c.FechaComentario ?? DateTime.MinValue,
-                                       //  FechaCreacion = t.FechaCreacion ?? DateTime.MinValue,
                                        NombreUsuario = u.Nombre + " " + u.Apellido,
                                        RolUsuario = role.NombreRol ?? "Sin rol"
                                    };
@@ -397,20 +618,59 @@ namespace TicketsApp.Controllers
 
             // Obtener datos para los dropdowns
             ViewBag.Estados = await _context.EstadosTicket.ToListAsync();
-            ViewBag.UsuariosInternos = await (from u in _context.Usuarios
-                                              join r in _context.Roles on u.RolId equals r.RolId into roleGroup
-                                              from role in roleGroup.DefaultIfEmpty()
-                                              where u.TipoUsuario == "Interno" && u.Estado == true
-                                              select new
-                                              {
-                                                  u.UsuarioId,
-                                                  u.Nombre,
-                                                  u.Apellido,
-                                                  NombreRol = role.NombreRol ?? "Sin rol"
-                                              }).ToListAsync();
-
             ViewBag.Prioridades = new List<string> { "Crítico", "Importante", "Baja" };
+            ViewBag.EsEditable = esEditable;
 
+            // Solo cargar usuarios para asignación si el ticket es editable
+            if (esEditable)
+            {
+                // Obtener todos los administradores activos
+                var administradores = await (from u in _context.Usuarios
+                                             join r in _context.Roles on u.RolId equals r.RolId
+                                             where u.TipoUsuario == "Interno" &&
+                                                   u.Estado == true &&
+                                                   r.NombreRol == "Administrador"
+                                             select new
+                                             {
+                                                 u.UsuarioId,
+                                                 u.Nombre,
+                                                 u.Apellido,
+                                                 NombreRol = r.NombreRol
+                                             }).ToListAsync();
+
+                // Obtener técnicos de la categoría específica del ticket
+                var tecnicos = await (from u in _context.Usuarios
+                                      join r in _context.Roles on u.RolId equals r.RolId
+                                      join uc in _context.UsuariosCategorias on u.UsuarioId equals uc.UsuarioId
+                                      where u.TipoUsuario == "Interno" &&
+                                            u.Estado == true &&
+                                            r.NombreRol == "Técnico" &&
+                                            uc.CategoriaId == ticket.CategoriaId
+                                      select new
+                                      {
+                                          u.UsuarioId,
+                                          u.Nombre,
+                                          u.Apellido,
+                                          NombreRol = r.NombreRol
+                                      }).ToListAsync();
+
+                // Combinar administradores y técnicos, ordenados por rol y nombre
+                ViewBag.UsuariosInternos = administradores.Concat(tecnicos)
+                    .OrderBy(u => u.NombreRol) // Primero Administradores, después Técnicos
+                    .ThenBy(u => u.Nombre)
+                    .ToList();
+
+                Console.WriteLine($"Administradores encontrados: {administradores.Count}");
+                Console.WriteLine($"Técnicos de categoría {ticket.CategoriaId} encontrados: {tecnicos.Count}");
+            }
+            else
+            {
+                // Si no es editable, lista vacía
+                ViewBag.UsuariosInternos = new List<object>();
+                Console.WriteLine("Ticket no editable - no se cargan usuarios para asignación");
+            }
+
+            // Crear el modelo de vista
             var model = new EditarTicketAdminViewModel
             {
                 TicketId = ticket.TicketId,

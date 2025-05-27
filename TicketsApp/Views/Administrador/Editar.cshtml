@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = $"Editar Ticket TK-{Model.TicketId}";
     Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    bool esEditable = (bool)(ViewBag.EsEditable ?? false);
 }
 
 @section Styles {
@@ -140,7 +141,7 @@
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label asp-for="EstadoId" class="form-label"><strong>Estado:</strong></label>
-                            <select asp-for="EstadoId" class="form-select">
+                            <select asp-for="EstadoId" class="form-select" disabled="@(!esEditable)">
                                 @foreach (var estado in ViewBag.Estados as List<EstadoTicket>)
                                 {
                                     <option value="@estado.EstadoId">@estado.NombreEstado</option>
@@ -151,7 +152,7 @@
 
                         <div class="col-md-4">
                             <label asp-for="Prioridad" class="form-label"><strong>Prioridad:</strong></label>
-                            <select asp-for="Prioridad" class="form-select">
+                            <select asp-for="Prioridad" class="form-select" disabled="@(!esEditable)">
                                 @foreach (var prioridad in ViewBag.Prioridades as List<string>)
                                 {
                                     <option value="@prioridad">@prioridad</option>
@@ -162,16 +163,34 @@
 
                         <div class="col-md-4">
                             <label asp-for="UsuarioAsignadoId" class="form-label"><strong>Asignado a:</strong></label>
-                            <select asp-for="UsuarioAsignadoId" class="form-select">
-                                <option value="">Sin asignar</option>
-                                @foreach (var usuario in ViewBag.UsuariosInternos)
-                                {
-                                    <option value="@usuario.UsuarioId"
-                                            selected="@(Model.UsuarioAsignadoId == usuario.UsuarioId ? "selected" : null)">
-                                        @usuario.Nombre @usuario.Apellido (@usuario.NombreRol)
-                                    </option>
-                                }
-                            </select>
+                            @if (esEditable)
+                            {
+                                <div class="d-flex gap-2">
+                                    <select asp-for="UsuarioAsignadoId" class="form-select" id="selectAsignado">
+                                        <option value="">Sin asignar</option>
+                                        @foreach (var usuario in ViewBag.UsuariosInternos)
+                                        {
+                                            <option value="@usuario.UsuarioId"
+                                                    selected="@(Model.UsuarioAsignadoId == usuario.UsuarioId ? "selected" : null)">
+                                                @usuario.Nombre @usuario.Apellido (@usuario.NombreRol)
+                                            </option>
+                                        }
+                                    </select>
+                                    <button type="button" class="btn btn-primary btn-sm" id="btnAsignar" title="Asignar">
+                                        <i class="fas fa-user-check"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">
+                                    Se muestran solo técnicos de esta categoría y administradores activos
+                                </small>
+                            }
+                            else
+                            {
+                                <p class="form-control-plaintext">
+                                    @(Model.NombreUsuarioAsignado ?? "Sin asignar")
+                                    <small class="text-muted d-block">Ticket cerrado/cancelado - No editable</small>
+                                </p>
+                            }
                         </div>
                     </div>
                 </div>
@@ -324,6 +343,30 @@
             </div>
         </div>
     </form>
+    <div class="modal fade" id="modalAsignacion" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Asignación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Desea asignar este ticket a <strong id="nombreUsuarioModal"></strong>?</p>
+                    <div class="mb-3">
+                        <label for="comentarioAsignacion" class="form-label">Comentario (opcional):</label>
+                        <textarea class="form-control" id="comentarioAsignacion" rows="3"
+                                  placeholder="Agregar comentario sobre la asignación..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="confirmarAsignacion">
+                        <i class="fas fa-user-check me-1"></i>Asignar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -468,7 +511,112 @@
     });
 </script>
 
+
+
+
 @section Scripts {
+    <script>
+        $(document).ready(function() {
+            let asignacionOriginal = $('#selectAsignado').val();
+
+            // Manejar click del botón asignar
+            $('#btnAsignar').click(function() {
+                const usuarioSeleccionado = $('#selectAsignado').val();
+                const textoUsuario = $('#selectAsignado option:selected').text();
+
+                // Verificar si hay cambios
+                if (usuarioSeleccionado === asignacionOriginal) {
+                    mostrarAlerta('info', 'No hay cambios en la asignación');
+                    return;
+                }
+
+                // Configurar modal
+                if (usuarioSeleccionado) {
+                    $('#nombreUsuarioModal').text(textoUsuario);
+                } else {
+                    $('#nombreUsuarioModal').text('Sin asignar (quitar asignación actual)');
+                }
+
+                // Limpiar comentario anterior
+                $('#comentarioAsignacion').val('');
+
+                // Mostrar modal
+                $('#modalAsignacion').modal('show');
+            });
+
+            // Confirmar asignación
+            $('#confirmarAsignacion').click(function() {
+                const usuarioId = $('#selectAsignado').val();
+                const comentario = $('#comentarioAsignacion').val();
+                const ticketId = @Model.TicketId;
+
+                // Deshabilitar botón mientras se procesa
+                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Procesando...');
+
+                $.ajax({
+                    url: '@Url.Action("AsignarTicket", "Administrador")',
+                    type: 'POST',
+                    data: {
+                        ticketId: ticketId,
+                        usuarioAsignadoId: usuarioId || null,
+                        comentarioAsignacion: comentario
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            let mensaje = response.message;
+
+                            // Agregar información adicional si cambió el estado
+                            if (response.estadoCambiado) {
+                                mensaje += ' - Estado cambiado a "Asignado"';
+                            }
+
+                            mostrarAlerta('success', mensaje);
+
+                            // Actualizar la asignación original para futuras comparaciones
+                            asignacionOriginal = usuarioId;
+
+                            // Cerrar modal
+                            $('#modalAsignacion').modal('hide');
+
+                            // Recargar la página para reflejar todos los cambios
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            mostrarAlerta('danger', response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error en asignación:', error);
+                        mostrarAlerta('danger', 'Error al procesar la asignación');
+                    },
+                    complete: function() {
+                        // Rehabilitar botón
+                        $('#confirmarAsignacion').prop('disabled', false).html('<i class="fas fa-user-check me-1"></i>Asignar');
+                    }
+                });
+            });
+
+            // Función para mostrar alertas
+            function mostrarAlerta(tipo, mensaje) {
+                const alertaHtml = `
+                    <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+                        ${mensaje}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+
+                // Agregar alerta al inicio del formulario
+                $('#editTicketForm').prepend(alertaHtml);
+
+                // Auto-dismiss después de 5 segundos
+                setTimeout(function() {
+                    $('.alert').fadeOut();
+                }, 5000);
+            }
+        });
+    </script>
+
     <script>
         // Obtener los elementos del DOM
         const fileInput = document.getElementById('fileInput');
