@@ -311,5 +311,51 @@ namespace TicketsApp.Controllers
             return View(model);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> VerTickets(int id)
+        {
+            var tecnico = await _context.Usuarios
+      .Where(u => u.UsuarioId == id)
+      .Select(u => new
+      {
+          u.Nombre,
+          u.Apellido,
+          u.Email
+      })
+      .FirstOrDefaultAsync();
+
+            if (tecnico == null)
+            {
+                return NotFound();
+            }
+
+            // Obtener tickets asignados al técnico con tecnicoId
+            var tickets = await _context.Asignaciones
+                .Where(a => a.UsuarioAsignadoId == id)
+                .Include(a => a.Ticket)
+                    .ThenInclude(t => t.Estado)
+                .Select(a => new TicketViewModel
+                {
+                    TicketId = a.Ticket.TicketId,
+                    Titulo = a.Ticket.Titulo,
+                    Prioridad = a.Ticket.Prioridad,
+                    Estado = a.Ticket.Estado.NombreEstado,
+                    FechaCreacion = a.Ticket.FechaCreacion
+                })
+                .ToListAsync();
+
+            // Crear el ViewModel con la información del técnico y los tickets
+            var viewModel = new VerTicketsViewModel
+            {
+                Nombre = tecnico.Nombre,
+                Apellido = tecnico.Apellido,
+                Email = tecnico.Email,
+                Tickets = tickets
+            };
+
+
+            return View(viewModel);
+        }
+
     }
 }

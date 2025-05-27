@@ -70,7 +70,14 @@
                     <a href="@Url.Action("PerfilTecnico", "Administrador", new { id = tecnico.UsuarioId })" class="link-primary">Ver perfil</a>
 
                     |
-                    <a href="@Url.Action("Tickets", "Usuarios", new { id = tecnico.UsuarioId })" class="link-secondary">Ver tickets</a>
+                    @if (tecnico.UsuarioId != 0)
+                    {
+                        <a href="@Url.Action("VerTickets", "TicketGeneral", new { id = tecnico.UsuarioId })" class="link-secondary">Ver tickets</a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">ID inválido</span>
+                    }
                 </td>
             </tr>
         }
@@ -80,5 +87,4 @@
 <div class="d-flex justify-content-between align-items-center">
     <small class="text-muted">Mostrando @Model.Count de técnicos</small>
     <!-- Paginación opcional -->
-</div>
 </div>
