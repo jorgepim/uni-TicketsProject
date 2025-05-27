@@ -1,0 +1,100 @@
+﻿@model TicketsApp.Models.ViewModels.TicketDetallesViewModel
+
+@{
+    ViewData["Title"] = "Detalles del Ticket";
+    Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
+}
+
+<div class="container mt-4" style="max-width: 850px;">
+    <div class="bg-light p-4 rounded shadow-sm">
+        <a asp-action="TicketsCreados" asp-controller="Tecnico" class="text-decoration-none mb-3 d-inline-block">
+            <i class="fas fa-arrow-left me-1"></i> Regresar a la lista
+        </a>
+
+        <h3 class="fw-bold text-primary">@Model.Titulo</h3>
+        <p class="text-muted mb-1">
+            <strong>ID:</strong> @Model.TicketId |
+            <strong>Aplicación:</strong> @Model.AplicacionAfectada |
+            <strong>Usuario:</strong> @Model.NombreUsuarioCreador
+        </p>
+        <p class="text-muted"><strong>Creado el:</strong> @Model.FechaCreacion?.ToString("dd/MM/yyyy")</p>
+
+        <!-- Estado y Prioridad -->
+        <div class="d-flex flex-wrap gap-3 my-3">
+            <div>
+                <label class="fw-bold me-2">Estado:</label>
+                <span class="badge bg-secondary">@Model.Estado?.NombreEstado</span>
+            </div>
+            <div>
+                <label class="fw-bold me-2">Prioridad:</label>
+                <span class="badge bg-warning text-dark">@Model.Prioridad</span>
+            </div>
+        </div>
+
+        <!-- Descripción -->
+        <div class="mb-3">
+            <label class="fw-bold">Descripción</label>
+            <div class="p-2 rounded bg-white border">
+                @Model.Descripcion
+            </div>
+        </div>
+
+        <!-- Comentario interno/respuesta -->
+        @if (Model.ComentariosTicket?.Any() == true)
+        {
+            <div class="mb-3">
+                <label class="fw-bold">Comentario</label>
+                <div class="p-2 rounded bg-white border">
+                    @Model.ComentariosTicket.OrderByDescending(c => c.FechaComentario).FirstOrDefault()?.Comentario
+                </div>
+            </div>
+        }
+
+        <!-- Archivos Adjuntos -->
+        <div class="mb-3">
+            <label class="fw-bold">Archivos Adjuntos</label>
+            <div class="d-flex gap-3 flex-wrap mt-2">
+                @if (Model.Adjunto.Any())
+                {
+                    @foreach (var adjunto in Model.Adjunto)
+                    {
+                        <div class="bg-white border rounded p-2 d-flex align-items-center gap-2 shadow-sm">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <a asp-action="DescargarAdjunto" asp-route-adjuntoId="@adjunto.AdjuntoId">@adjunto.NombreArchivo</a>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted">No hay archivos adjuntos.</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Agregar comentario y archivo (solo si no está resuelto/cerrado) -->
+    @if (Model.Estado?.NombreEstado != "Resuelto" && Model.Estado?.NombreEstado != "Cerrado")
+    {
+        <div class="bg-white border rounded shadow-sm p-4 mt-4">
+            <form asp-action="AgregarComentario2" asp-controller="Tecnico" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="ticketId" value="@Model.TicketId" />
+
+                <div class="form-group mb-3">
+                    <label for="comentario" class="fw-bold">Añadir comentario</label>
+                    <input type="text" name="comentario" class="form-control rounded-pill" placeholder="Escribe tu comentario" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="archivos" class="fw-bold">Añadir archivos</label>
+                    <input type="file" name="archivos" class="form-control rounded-pill" multiple />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 rounded-pill">Enviar</button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted mt-4"><em>Este ticket no permite nuevos comentarios ni archivos adjuntos.</em></p>
+    }
+</div>

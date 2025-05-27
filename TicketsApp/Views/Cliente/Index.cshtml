@@ -1,5 +1,88 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿
+
 @{
+    ViewData["Title"] = "Panel de Usuario";
+    Layout = "~/Views/Shared/_LayoutCliente.cshtml";
 }
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+
+<style>
+    body {
+        background-color: #fef4ea;
+    }
+
+    .dashboard-container {
+        background-color: #d9d9d9;
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 2rem auto;
+        max-width: 750px;
+    }
+
+    .dashboard-header {
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin-bottom: 2rem;
+        text-align: left;
+        color: #333;
+        padding-left: 1rem;
+    }
+
+    .dashboard-option {
+        border-radius: 20px;
+        height: 180px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.1rem;
+        font-weight: 500;
+        flex-direction: column;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        box-shadow: none;
+        text-decoration: none;
+    }
+
+        .dashboard-option:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            text-decoration: none;
+        }
+
+    .crear-ticket {
+        background-color: #fef4ea;
+        color: #aaa;
+    }
+
+    .ver-tickets {
+        background-color: #496b9e;
+        color: white;
+    }
+
+    .icono {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+</style>
+
+<div class="container">
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            Bienvenido Usuario
+        </div>
+        <div class="row justify-content-center gap-3">
+            <div class="col-md-5 mb-3">
+                <a asp-controller="TicketGeneral" asp-action="Crear" class="dashboard-option crear-ticket">
+                    <div class="icono"><i class="fas fa-plus"></i></div>
+                    Crear un nuevo ticket
+                </a>
+            </div>
+            <div class="col-md-5 mb-3">
+                <a asp-controller="Cliente" asp-action="VerTickets" class="dashboard-option ver-tickets">
+                    <div class="icono"><i class="fas fa-eye"></i></div>
+                    Ver tickets
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -167,14 +167,22 @@
         display: none;
     }
 
-    .floating-label input::placeholder {
+    .floating-label input:placeholder-shown::placeholder {
         color: transparent;
-        transition: color 0.2s ease-in-out;
     }
 
     .floating-label input:focus::placeholder {
         color: rgba(255, 255, 255, 0.5);
     }
+
+    .floating-label select:required:invalid + label {
+        top: 1rem;
+        left: 3rem;
+        font-size: 1rem;
+        background: transparent;
+        color: #6b7280;
+    }
+
 
 </style>
 

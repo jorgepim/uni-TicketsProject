@@ -1,5 +1,147 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
-}
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TicketsApp</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.12.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/TicketsApp.styles.css" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #22303E;
+            color: white;
+            padding: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background-color: #D6DD13;
+            color: #2C3E50;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+            .sidebar-menu li {
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                text-align: center;
+            }
+
+            .sidebar-menu a {
+                display: flex;
+                align-items: center;
+                padding: 15px 20px;
+                color: white;
+                text-decoration: none;
+                transition: all 0.3s ease;
+                font-size: 14px;
+            }
+
+                .sidebar-menu a:hover {
+                    background-color: #D6DD13;
+                    color: #2C3E50;
+                }
+
+                .sidebar-menu a.active {
+                    background-color: #D6DD13;
+                    color: #2C3E50;
+                }
+
+            .sidebar-menu i {
+                width: 20px;
+                margin-right: 12px;
+                text-align: center;
+            }
+
+        .main-content {
+            flex: 1;
+            margin-left: 250px;
+            padding: 30px;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            @*  <div class="sidebar-header">
+                Panel de Administrador
+            </div> *@
+            <ul class="sidebar-menu">
+                <li>
+                    <a asp-area="" asp-controller="Tecnico" asp-action="Index">
+                        <i class="bi bi-speedometer2"></i>
+                        Dashboard
+                    </a>
+                </li>
+                @*Tickets asignados, estado asignado, en proceso, en espera, resuelto*@
+                <li>
+                    <a asp-area="" asp-controller="Tecnico" asp-action="TicketsAsignados">
+                        <i class="bi bi-file-earmark-text"></i>
+                        Tickets Asignados
+                    </a>
+                </li>
+                @*Historial Tickets, estado cerrado*@
+                <li>
+                    <a asp-area="" asp-controller="Tecnico" asp-action="TodosLosTickets">
+                        <i class="bi bi-building"></i>
+                        Historial Tickets
+                    </a>
+                </li>
+                @*Tickets creados*@
+                <li>
+                    <a asp-area="" asp-controller="Tecnico" asp-action="TicketsCreados">
+                        <i class="bi bi-people"></i>
+                        Mis Tickets 
+                    </a>
+                </li>
+                <li>
+                    <form asp-controller="Auth" asp-action="Logout" method="post">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-box-arrow-left"></i>
+                            Cerrar sesión
+                        </button>
+                    </form>
+
+                </li>
+            </ul>
+        </nav>
+
+        <div class="main-content">
+            <main role="main">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

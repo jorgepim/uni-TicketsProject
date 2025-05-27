@@ -2,26 +2,7 @@
 
 @{
     ViewData["Title"] = "Crear Nuevo Ticket";
-
-    var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-
-    if (rol == "Administrador")
-    {
-        Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
-    }
-    else if (rol == "Cliente")
-    {
-
-        Layout = "~/Views/Shared/_LayoutCliente.cshtml";
-    }
-    else if (rol == "Tecnico")
-    {
-
-        Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
-    }
-
-
-
+    Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
 }
 
 <!-- Font Awesome CSS -->
@@ -248,33 +229,18 @@
                         <div class="row mt-5">
                             <div class="col-12">
                                 <div class="d-flex justify-content-between flex-wrap gap-2">
-                                    @{
-                                        
-                                        string controlador = rol switch
-                                        {
-                                            "Administrador" => "Administrador",
-                                            "Cliente" => "Cliente",
-                                            "Tecnico" => "Tecnico",
-                                            _ => "Home"
-                                        };
-                                        var returnUrl = ViewBag.ReturnUrl as string;
-                                    }
-
-                                    @if (!string.IsNullOrEmpty(returnUrl))
+                                    @if (!string.IsNullOrEmpty(ViewBag.ReturnUrl as string))
                                     {
-                                        <a href="@returnUrl" class="btn btn-light btn-lg px-4">
+                                        <a href="@ViewBag.ReturnUrl" class="btn btn-light btn-lg px-4">
                                             <i class="fas fa-arrow-left me-2"></i>Cancelar
                                         </a>
                                     }
                                     else
                                     {
-                                        <a asp-controller="@controlador" asp-action="Index" class="btn btn-light btn-lg px-4">
+                                        <a asp-action="Index" class="btn btn-light btn-lg px-4">
                                             <i class="fas fa-arrow-left me-2"></i>Cancelar
                                         </a>
                                     }
-
-                                                                          
-                                   
 
                                     <button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn">
                                         <i class="fas fa-save me-2"></i>Crear Ticket
@@ -720,5 +686,4 @@
         min-width: 300px;
     }
 
-  
 </style>

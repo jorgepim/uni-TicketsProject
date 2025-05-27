@@ -226,6 +226,7 @@ namespace TicketsApp.Controllers
                     _context.ClientesExternos.Add(clienteExterno);
                 }
 
+
                 // Agregar las categorías seleccionadas
                 foreach (var categoriaId in model.CategoriasSeleccionadas)
                 {

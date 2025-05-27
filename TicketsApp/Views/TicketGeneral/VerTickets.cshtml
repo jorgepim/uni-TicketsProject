@@ -1,0 +1,74 @@
+﻿@model TicketsApp.Models.ViewModels.VerTicketsViewModel
+
+@{
+    ViewData["Title"] = "Tickets Asignados";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="container my-5">
+    <!-- Title and Technician Information Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm rounded-lg">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Técnico: @Model.Nombre @Model.Apellido</h4>
+                    <p class="small mb-0">Email: @Model.Email</p>
+                </div>
+                <div class="card-body">
+                    <p class="fw-bold">Técnico Asignado a los Tickets</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tickets Table -->
+    @if (!Model.Tickets.Any())
+    {
+        <div class="alert alert-info">No hay tickets asignados a este técnico.</div>
+    }
+    else
+    {
+        <table class="table table-hover table-striped align-middle shadow-lg rounded">
+            <thead class="table-dark">
+                <tr>
+                    <th>Título</th>
+                    <th>Prioridad</th>
+                    <th>Estado</th>
+                    <th>Fecha Creación</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ticket in Model.Tickets)
+                {
+                    <tr>
+                        <td>@ticket.Titulo</td>
+                        <td>
+                            <span class="badge
+                                        @(ticket.Prioridad == "Crítico" ? "bg-danger" :
+                                                                    ticket.Prioridad == "Importante" ? "bg-warning text-dark" :
+                                                                    "bg-success")">
+                                                                               @ticket.Prioridad
+                                                                           </span>
+                                                                       </td>
+                                                                       <td>
+                                                                           <span class="badge
+                                        @(ticket.Estado == "Resuelto" ? "bg-success" :
+                                                                    ticket.Estado == "En Proceso" ? "bg-warning text-dark" :
+                                                                    "bg-secondary")">
+                        @ticket.Estado
+                    </span>
+                </td>
+                <td>@(ticket.FechaCreacion?.ToShortDateString() ?? "N/A")</td>
+                <td>
+                    <a href="@Url.Action("EditarTickets", "TicketGeneral", new { id = ticket.TicketId })" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-edit me-1"></i>Editar
+                    </a>
+                </td>
+            </tr>
+                        }
+            </tbody>
+        </table>
+    }
+</div>
+

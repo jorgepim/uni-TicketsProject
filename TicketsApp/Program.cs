@@ -5,6 +5,8 @@ using TicketsApp.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -20,6 +22,7 @@ builder.Services.AddAuthentication("Cookies")
     });
 
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddSingleton<EmailService>();
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
