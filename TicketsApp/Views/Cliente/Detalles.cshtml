@@ -2,7 +2,6 @@
 
 @{
     ViewData["Title"] = "Detalle del Ticket";
-
     var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
 
     if (rol == "Administrador")
@@ -18,7 +17,6 @@
         Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
     }
 
-    
     var estadoEnEsperaId = 4; // Cambia al Id correcto
     bool puedeEditar = Model.EstadoId == estadoEnEsperaId;
 }
@@ -57,8 +55,10 @@
     }
 
     .list-group-item {
-        background-color: #f9f9f9;
-        border: none;
+        background-color: #fef4ea;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        margin-bottom: 10px;
     }
 
     .btn-volver {
@@ -76,6 +76,11 @@
         margin-right: 0.5rem;
         color: #3b5b8d;
     }
+
+    .shadow-sm {
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+    }
+
 </style>
 
 <div class="ticket-detail-container">
@@ -86,32 +91,26 @@
             <label><i class="fas fa-folder icon-label"></i>Categoría</label>
             <input class="form-control" disabled value="@Model.Categoria?.Nombre" />
         </div>
-
         <div class="col-md-6">
             <label><i class="fas fa-exclamation-triangle icon-label"></i>Prioridad</label>
             <input class="form-control" disabled value="@Model.Prioridad" />
         </div>
-
         <div class="col-12">
             <label><i class="fas fa-heading icon-label"></i>Título del Ticket</label>
             <input class="form-control" disabled value="@Model.Titulo" />
         </div>
-
         <div class="col-12">
             <label><i class="fas fa-desktop icon-label"></i>Aplicación Afectada</label>
             <input class="form-control" disabled value="@Model.AplicacionAfectada" />
         </div>
-
         <div class="col-12">
             <label><i class="fas fa-align-left icon-label"></i>Descripción del Problema</label>
             <textarea class="form-control" disabled style="height: 120px">@Model.Descripcion</textarea>
         </div>
-
         <div class="col-md-6">
             <label><i class="fas fa-clipboard-check icon-label"></i>Estado</label>
             <input class="form-control" disabled value="@Model.Estado?.NombreEstado" />
         </div>
-
         <div class="col-md-6">
             <label><i class="fas fa-calendar-alt icon-label"></i>Fecha de Creación</label>
             <input class="form-control" disabled value="@Model.FechaCreacion?.ToString("dd/MM/yyyy")" />
@@ -155,8 +154,9 @@
 
                     <div class="mb-3">
                         <label for="nuevosAdjuntos" class="form-label">Archivos adjuntos</label>
-                        <input type="file" name="nuevosAdjuntos" id="nuevosAdjuntos" multiple class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.zip,.rar" />
-                        <small class="form-text text-muted">Formatos permitidos: PDF, Word, Excel, imágenes, ZIP, RAR. Máximo 10MB por archivo.</small>
+                        <input type="file" name="nuevosAdjuntos" id="nuevosAdjuntos" multiple class="form-control"
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.zip,.rar" />
+                        <small class="form-text text-muted">Formatos permitidos: PDF, Word, Excel, imágenes, ZIP, RAR.</small>
                     </div>
 
                     <button type="submit" class="btn btn-primary">Agregar</button>
@@ -164,12 +164,40 @@
             </div>
         </div>
     }
-    else
+
+    @if (Model.ComentariosTicket != null && Model.ComentariosTicket.Any())
     {
-        <div class="alert alert-warning mt-4">
-            No se ha recibido actualización.
+        <div class="mt-4">
+            <h5><i class="fas fa-comments icon-label"></i>Conversación</h5>
+            <div class="p-3 rounded bg-white border" style="max-height: 400px; overflow-y: auto;">
+                @foreach (var comentario in Model.ComentariosTicket.OrderBy(c => c.FechaComentario))
+                {
+                    var esDelUsuario = comentario.UsuarioId == (int?)ViewBag.UsuarioActualId;
+                    var esCreador = comentario.UsuarioId == (int?)ViewBag.UsuarioCreadorId;
+                    var nombre = comentario.Usuario?.Nombre ?? "Usuario";
+                    var sufijo = esCreador ? "(Tú)" : "";
+
+                    <div class="mb-3">
+                        <div class="d-flex @(esDelUsuario ? "justify-content-end" : "justify-content-start")">
+                            <div class="p-3 rounded shadow-sm"
+                                 style="max-width: 75%; background-color:@(esDelUsuario ? "#d1e7dd" : "#e2e3e5");">
+                                <div class="fw-bold text-dark mb-1">
+                                    @nombre @sufijo
+                                </div>
+                                <div>@comentario.Comentario</div>
+                                <div class="text-muted text-end small mt-1">
+                                    @comentario.FechaComentario?.ToString("dd/MM/yyyy HH:mm")
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
     }
+
+
+
 
     <div class="mt-5 text-end">
         <a asp-action="VerTickets" class="btn btn-volver">
