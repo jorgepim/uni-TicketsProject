@@ -26,7 +26,8 @@ namespace TicketsApp.Controllers
             _fileService = fileService;
         }
 
-        public async Task<IActionResult> Index(int page = 1)
+        public async Task<IActionResult> Index(int page = 1, string fechaFiltro = "", DateTime? fechaInicio = null,
+    DateTime? fechaFin = null, int? categoriaId = null, int? estadoId = null, int? usuarioAsignadoId = null)
         {
             // Obtener datos directamente de los claims
             ViewBag.NombreCompleto = User.FindFirst("NombreCompleto")?.Value
@@ -34,7 +35,29 @@ namespace TicketsApp.Controllers
             ViewBag.Email = User.FindFirst(ClaimTypes.Email)?.Value;
             ViewBag.Rol = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            // Obtener tickets con paginación
+            // Obtener listas para los dropdowns de filtros
+            ViewBag.Categorias = await _context.Categorias
+                .Select(c => new { c.CategoriaId, c.Nombre })
+                .ToListAsync();
+
+            ViewBag.Estados = await _context.EstadosTicket
+                .Select(e => new { e.EstadoId, e.NombreEstado })
+                .ToListAsync();
+
+            ViewBag.UsuariosAsignados = await _context.Usuarios
+                .Where(u => u.TipoUsuario == "Interno") // Solo usuarios internos para asignación
+                .Select(u => new { u.UsuarioId, NombreCompleto = $"{u.Nombre} {u.Apellido}" })
+                .ToListAsync();
+
+            // Pasar valores de filtros actuales a la vista
+            ViewBag.FechaFiltro = fechaFiltro;
+            ViewBag.FechaInicio = fechaInicio?.ToString("yyyy-MM-dd");
+            ViewBag.FechaFin = fechaFin?.ToString("yyyy-MM-dd");
+            ViewBag.CategoriaId = categoriaId;
+            ViewBag.EstadoId = estadoId;
+            ViewBag.UsuarioAsignadoId = usuarioAsignadoId;
+
+            // Query base de tickets
             var ticketsQuery = from t in _context.Tickets
                                join u in _context.Usuarios on t.UsuarioCreadorId equals u.UsuarioId
                                join c in _context.Categorias on t.CategoriaId equals c.CategoriaId
@@ -47,7 +70,6 @@ namespace TicketsApp.Controllers
                                from asig in asigGroup.DefaultIfEmpty()
                                join uAsig in _context.Usuarios on asig.UsuarioAsignadoId equals uAsig.UsuarioId into uAsigGroup
                                from uAsig in uAsigGroup.DefaultIfEmpty()
-                               orderby t.FechaCreacion descending
                                select new TicketAdminViewModel
                                {
                                    TicketId = t.TicketId,
@@ -58,10 +80,64 @@ namespace TicketsApp.Controllers
                                    NombreCategoria = c.Nombre,
                                    NombreEstado = e.NombreEstado,
                                    NombreEmpresa = emp != null ? emp.NombreEmpresa : (u.TipoUsuario == "Interno" ? "Fix|Now" : "Fix|Now"),
-                                   UsuarioAsignado = uAsig != null ? $"{uAsig.Nombre} {uAsig.Apellido}" : null
+                                   UsuarioAsignado = uAsig != null ? $"{uAsig.Nombre} {uAsig.Apellido}" : null,
+                                   CategoriaId = c.CategoriaId,
+                                   EstadoId = e.EstadoId,
+                                   UsuarioAsignadoId = uAsig != null ? uAsig.UsuarioId : (int?)null
                                };
 
-            // Contar total de tickets
+            // Aplicar filtros de fecha
+            DateTime? fechaDesde = null;
+            DateTime? fechaHasta = null;
+
+            switch (fechaFiltro)
+            {
+                case "ultimos5":
+                    fechaDesde = DateTime.Now.AddDays(-5).Date;
+                    break;
+                case "ultimos10":
+                    fechaDesde = DateTime.Now.AddDays(-10).Date;
+                    break;
+                case "rango":
+                    if (fechaInicio.HasValue)
+                        fechaDesde = fechaInicio.Value.Date;
+                    if (fechaFin.HasValue)
+                        fechaHasta = fechaFin.Value.Date.AddDays(1).AddTicks(-1); // Incluir todo el día
+                    break;
+            }
+
+            if (fechaDesde.HasValue)
+            {
+                ticketsQuery = ticketsQuery.Where(t => t.FechaCreacion >= fechaDesde.Value);
+            }
+
+            if (fechaHasta.HasValue)
+            {
+                ticketsQuery = ticketsQuery.Where(t => t.FechaCreacion <= fechaHasta.Value);
+            }
+
+            // Aplicar filtro por categoría
+            if (categoriaId.HasValue && categoriaId.Value > 0)
+            {
+                ticketsQuery = ticketsQuery.Where(t => t.CategoriaId == categoriaId.Value);
+            }
+
+            // Aplicar filtro por estado
+            if (estadoId.HasValue && estadoId.Value > 0)
+            {
+                ticketsQuery = ticketsQuery.Where(t => t.EstadoId == estadoId.Value);
+            }
+
+            // Aplicar filtro por usuario asignado
+            if (usuarioAsignadoId.HasValue && usuarioAsignadoId.Value > 0)
+            {
+                ticketsQuery = ticketsQuery.Where(t => t.UsuarioAsignadoId == usuarioAsignadoId.Value);
+            }
+
+            // Ordenar por fecha de creación descendente
+            ticketsQuery = ticketsQuery.OrderByDescending(t => t.FechaCreacion);
+
+            // Contar total de tickets filtrados
             var totalTickets = await ticketsQuery.CountAsync();
 
             // Obtener tickets para la página actual
@@ -1063,6 +1139,111 @@ namespace TicketsApp.Controllers
  */
 
 
+
+        [HttpGet]
+        public async Task<IActionResult> PanelAdministrador(string busqueda = "", string area = "")
+        {
+            var tecnicos = await _context.Usuarios
+                .Include(u => u.Rol)
+                .Where(u => u.Rol.NombreRol == "Tecnico")
+                .ToListAsync();
+
+            var categorias = await _context.UsuariosCategorias
+                .Include(uc => uc.Categoria)
+                .ToListAsync();
+
+            var asignaciones = await _context.Asignaciones
+                .Include(a => a.Ticket)
+                .ThenInclude(t => t.Estado)
+                .ToListAsync();
+
+            var lista = tecnicos.Select(t =>
+            {
+                var ticketsAsignados = asignaciones.Count(a => a.UsuarioAsignadoId == t.UsuarioId);
+                var ticketsResueltos = asignaciones.Count(a =>
+                    a.UsuarioAsignadoId == t.UsuarioId && a.Ticket?.Estado?.NombreEstado == "Resuelto");
+
+                var areas = categorias
+                    .Where(c => c.UsuarioId == t.UsuarioId)
+                    .Select(c => c.Categoria?.Nombre ?? "")
+                    .Distinct()
+                    .ToList();
+
+                return new TecnicoPanelViewModel
+                {
+                    UsuarioId = t.UsuarioId,
+                    Nombre = t.Nombre!,
+                    Apellido = t.Apellido!,
+                    Email = t.Email!,
+                    Areas = areas,
+                    TicketsAsignados = ticketsAsignados,
+                    TicketsResueltos = ticketsResueltos
+                };
+            }).ToList();
+
+            // Filtro por búsqueda (nombre o apellido)
+            if (!string.IsNullOrWhiteSpace(busqueda))
+            {
+                lista = lista.Where(t =>
+                    t.Nombre.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
+                    t.Apellido.Contains(busqueda, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            // Filtro por área
+            if (!string.IsNullOrWhiteSpace(area) && area != "Todas")
+            {
+                lista = lista.Where(t => t.Areas.Contains(area)).ToList();
+            }
+
+            return View(lista);
+        }
+
+
+
+
+
+        [HttpGet]
+        public async Task<IActionResult> PerfilTecnico(int id)
+        {
+            var usuario = await _context.Usuarios
+                .Include(u => u.Rol)
+                .FirstOrDefaultAsync(u => u.UsuarioId == id);
+
+            if (usuario == null || usuario.Rol?.NombreRol != "Tecnico")
+                return NotFound();
+
+            var areas = await _context.UsuariosCategorias
+                .Where(uc => uc.UsuarioId == id)
+                .Select(uc => uc.Categoria.Nombre)
+                .ToListAsync();
+
+            var tickets = await _context.Asignaciones
+                .Where(a => a.UsuarioAsignadoId == id)
+                .Include(a => a.Ticket)
+                .ThenInclude(t => t.Estado)
+                .ToListAsync();
+
+            var model = new TecnicoPerfilViewModel
+            {
+                UsuarioId = usuario.UsuarioId,
+                Nombre = usuario.Nombre,
+                Apellido = usuario.Apellido,
+                Email = usuario.Email,
+                Telefono = usuario.Telefono,
+                TipoUsuario = usuario.TipoUsuario,
+                FechaRegistro = usuario.FechaRegistro ?? DateTime.Now,
+                Areas = areas,
+                Tickets = tickets.Select(t => new TicketResumenViewModel
+                {
+                    Titulo = t.Ticket?.Titulo,
+                    Estado = t.Ticket?.Estado?.NombreEstado,
+                    Prioridad = t.Ticket?.Prioridad,
+                    FechaCreacion = t.Ticket?.FechaCreacion
+                }).ToList()
+            };
+
+            return View(model);
+        }
 
         // end class
     }

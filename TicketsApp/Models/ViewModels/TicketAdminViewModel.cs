@@ -11,5 +11,8 @@
         public string NombreEstado { get; set; } = string.Empty;
         public string? NombreEmpresa { get; set; }
         public string? UsuarioAsignado { get; set; }
+        public int CategoriaId { get; set; }
+        public int EstadoId { get; set; }
+        public int? UsuarioAsignadoId { get; set; }
     }
 }

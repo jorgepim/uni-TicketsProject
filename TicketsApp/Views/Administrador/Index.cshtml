@@ -39,7 +39,7 @@
                 Tickets Recientes
             </h2>
             <div class="header-actions">
-                <button class="btn-filter">
+                <button class="btn-filter" id="toggleFilters">
                     <i class="icon-filter"></i>
                     Filtrar
                 </button>
@@ -53,6 +53,101 @@
                 </a>
             </div>
         </div>
+    </div>
+
+    <!-- Filtros Panel -->
+    <div class="filters-panel" id="filtersPanel">
+        <form method="get" action="@Url.Action("Index")" class="filters-form">
+            <div class="filters-grid">
+                <!-- Filtro de Fecha -->
+                <div class="filter-group">
+                    <label class="filter-label">Periodo</label>
+                    <select name="fechaFiltro" id="fechaFiltro" class="filter-select">
+                        <option value="">Todas las fechas</option>
+                        <!option value="ultimos5" @(ViewBag.FechaFiltro == "ultimos5" ? "selected" : "")>Últimos 5 días</!option>
+                        <!option value="ultimos10" @(ViewBag.FechaFiltro == "ultimos10" ? "selected" : "")>Últimos 10 días</!option>
+                        <!option value="rango" @(ViewBag.FechaFiltro == "rango" ? "selected" : "")>Rango personalizado</!option>
+                    </select>
+                </div>
+
+                <!-- Rango de fechas (oculto por defecto) -->
+                <div class="filter-group date-range" id="dateRange" style="display: @(ViewBag.FechaFiltro == "rango" ? "block" : "none")">
+                    <div class="date-inputs">
+                        <div class="date-input-group">
+                            <label class="filter-label">Desde</label>
+                            <input type="date" name="fechaInicio" class="filter-input" value="@ViewBag.FechaInicio" />
+                        </div>
+                        <div class="date-input-group">
+                            <label class="filter-label">Hasta</label>
+                            <input type="date" name="fechaFin" class="filter-input" value="@ViewBag.FechaFin" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtro por Categoría -->
+                <div class="filter-group">
+                    <label class="filter-label">Categoría</label>
+                    <select name="categoriaId" class="filter-select">
+                        <option value="">Todas las categorías</option>
+                        @if (ViewBag.Categorias != null)
+                        {
+                            @foreach (var categoria in (IEnumerable<dynamic>)ViewBag.Categorias)
+                            {
+                                <!option value="@categoria.CategoriaId" @(ViewBag.CategoriaId != null && ViewBag.CategoriaId.ToString() == categoria.CategoriaId.ToString() ? "selected" : "")>
+                                    @categoria.Nombre
+                                </!option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Filtro por Estado -->
+                <div class="filter-group">
+                    <label class="filter-label">Estado</label>
+                    <select name="estadoId" class="filter-select">
+                        <option value="">Todos los estados</option>
+                        @if (ViewBag.Estados != null)
+                        {
+                            @foreach (var estado in (IEnumerable<dynamic>)ViewBag.Estados)
+                            {
+                                <!option value="@estado.EstadoId" @(ViewBag.EstadoId != null && ViewBag.EstadoId.ToString() == estado.EstadoId.ToString() ? "selected" : "")>
+                                    @estado.NombreEstado
+                                </!option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Filtro por Usuario Asignado -->
+                <div class="filter-group">
+                    <label class="filter-label">Asignado a</label>
+                    <select name="usuarioAsignadoId" class="filter-select">
+                        <option value="">Todos los usuarios</option>
+                        <!option value="0" @(ViewBag.UsuarioAsignadoId != null && ViewBag.UsuarioAsignadoId.ToString() == "0" ? "selected" : "")>Sin asignar</!option>
+                        @if (ViewBag.UsuariosAsignados != null)
+                        {
+                            @foreach (var usuario in (IEnumerable<dynamic>)ViewBag.UsuariosAsignados)
+                            {
+                                <!option value="@usuario.UsuarioId" @(ViewBag.UsuarioAsignadoId != null && ViewBag.UsuarioAsignadoId.ToString() == usuario.UsuarioId.ToString() ? "selected" : "")>
+                                    @usuario.NombreCompleto
+                                </!option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="filters-actions">
+                <button type="submit" class="btn-apply-filters">
+                    <i class="icon-check"></i>
+                    Aplicar Filtros
+                </button>
+                <a href="@Url.Action("Index")" class="btn-clear-filters">
+                    <i class="icon-clear"></i>
+                    Limpiar Filtros
+                </a>
+            </div>
+        </form>
     </div>
 
     <!-- Tickets Table -->
@@ -206,7 +301,11 @@
                 Mostrando @((currentPage - 1) * pageSize + 1) - @(Math.Min(currentPage * pageSize, totalTickets)) de @totalTickets tickets
             </div>
             <nav class="pagination">
-                <a href="@Url.Action("Index", new { page = currentPage - 1 })" class="page-btn prev @(currentPage <= 1 ? "disabled" : "")">
+                @{
+                    var routeValues = new RouteValueDictionary(ViewContext.HttpContext.Request.Query);
+                    routeValues["page"] = currentPage - 1;
+                }
+                <a href="@Url.Action("Index", routeValues)" class="page-btn prev @(currentPage <= 1 ? "disabled" : "")">
                     <i class="icon-chevron-left"></i>
                 </a>
 
@@ -217,12 +316,16 @@
 
                 @for (int i = startPage; i <= endPage; i++)
                 {
-                    <a href="@Url.Action("Index", new { page = i })" class="page-btn @(i == currentPage ? "active" : "")">
+                    routeValues["page"] = i;
+                    <a href="@Url.Action("Index", routeValues)" class="page-btn @(i == currentPage ? "active" : "")">
                         @i
                     </a>
                 }
 
-                <a href="@Url.Action("Index", new { page = currentPage + 1 })" class="page-btn next @(currentPage >= totalPages ? "disabled" : "")">
+                @{
+                    routeValues["page"] = currentPage + 1;
+                }
+                <a href="@Url.Action("Index", routeValues)" class="page-btn next @(currentPage >= totalPages ? "disabled" : "")">
                     <i class="icon-chevron-right"></i>
                 </a>
             </nav>
@@ -232,45 +335,18 @@
 
 <style>
     /* Iconos usando CSS */
-    .icon-tickets::before {
-        content: "🎫";
-    }
-
-    .icon-filter::before {
-        content: "🔍";
-    }
-
-    .icon-plus::before {
-        content: "➕";
-    }
-
-    .icon-eye::before {
-        content: "👁";
-    }
-
-    .icon-edit::before {
-        content: "✏️";
-    }
-
-    .icon-more::before {
-        content: "⋯";
-    }
-
-    .icon-inbox::before {
-        content: "📥";
-    }
-
-    .icon-chevron-left::before {
-        content: "‹";
-    }
-
-    .icon-chevron-right::before {
-        content: "›";
-    }
-
-    .icon-user::before {
-        content: "👤";
-    }
+    .icon-tickets::before { content: "🎫"; }
+    .icon-filter::before { content: "🔍"; }
+    .icon-plus::before { content: "➕"; }
+    .icon-eye::before { content: "👁"; }
+    .icon-edit::before { content: "✏️"; }
+    .icon-more::before { content: "⋯"; }
+    .icon-inbox::before { content: "📥"; }
+    .icon-chevron-left::before { content: "‹"; }
+    .icon-chevron-right::before { content: "›"; }
+    .icon-user::before { content: "👤"; }
+    .icon-check::before { content: "✓"; }
+    .icon-clear::before { content: "✕"; }
 
     /* Variables CSS */
     :root {
@@ -382,10 +458,11 @@
         transition: all 0.2s;
     }
 
-        .btn-filter:hover {
-            background: var(--bg-gray);
-            border-color: var(--primary-blue);
-        }
+    .btn-filter:hover, .btn-filter.active {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        color: white;
+    }
 
     .btn-primary {
         background: var(--primary-blue);
@@ -402,11 +479,129 @@
         border: none;
     }
 
-        .btn-primary:hover {
-            background: #2563eb;
-            color: white;
-            text-decoration: none;
-        }
+    .btn-primary:hover {
+        background: #2563eb;
+        color: white;
+        text-decoration: none;
+    }
+
+    /* Panel de Filtros */
+    .filters-panel {
+        background: var(--bg-white);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        display: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .filters-panel.active {
+        display: block;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-group.date-range {
+        grid-column: span 2;
+    }
+
+    .filter-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-gray);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .filter-select, .filter-input {
+        padding: 8px 12px;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        font-size: 14px;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        transition: all 0.2s;
+    }
+
+    .filter-select:focus, .filter-input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .date-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .date-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filters-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .btn-apply-filters {
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-apply-filters:hover {
+        background: #2563eb;
+    }
+
+    .btn-clear-filters {
+        background: var(--bg-white);
+        color: var(--text-gray);
+        border: 1px solid var(--border-light);
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-clear-filters:hover {
+        background: var(--bg-gray);
+        border-color: var(--danger-red);
+        color: var(--danger-red);
+        text-decoration: none;
+    }
 
     /* Tabla */
     .tickets-table-container {
@@ -423,62 +618,39 @@
         font-size: 14px;
     }
 
-        .tickets-table thead {
-            background: var(--bg-gray);
-        }
+    .tickets-table thead {
+        background: var(--bg-gray);
+    }
 
-        .tickets-table th {
-            padding: 16px 12px;
-            text-align: left;
-            font-weight: 600;
-            color: var(--text-gray);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
+    .tickets-table th {
+        padding: 16px 12px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-gray);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
 
-        .tickets-table td {
-            padding: 16px 12px;
-            border-bottom: 1px solid var(--border-light);
-            vertical-align: middle;
-        }
+    .tickets-table td {
+        padding: 16px 12px;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
 
     .ticket-row:hover {
         background: var(--bg-gray);
     }
 
     /* Columnas específicas */
-    .col-id {
-        width: 8%;
-    }
-
-    .col-asunto {
-        width: 25%;
-    }
-
-    .col-cliente {
-        width: 15%;
-    }
-
-    .col-asignado {
-        width: 15%;
-    }
-
-    .col-categoria {
-        width: 12%;
-    }
-
-    .col-prioridad {
-        width: 10%;
-    }
-
-    .col-estado {
-        width: 10%;
-    }
-
-    .col-acciones {
-        width: 5%;
-    }
+    .col-id { width: 8%; }
+    .col-asunto { width: 25%; }
+    .col-cliente { width: 15%; }
+    .col-asignado { width: 15%; }
+    .col-categoria { width: 12%; }
+    .col-prioridad { width: 10%; }
+    .col-estado { width: 10%; }
+    .col-acciones { width: 5%; }
 
     /* Contenido de celdas */
     .ticket-id {
@@ -538,35 +710,35 @@
         font-weight: 500;
     }
 
-        .prioridad-badge .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
+    .prioridad-badge .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
 
-        .prioridad-badge.critico {
-            color: var(--danger-red);
-        }
+    .prioridad-badge.critico {
+        color: var(--danger-red);
+    }
 
-            .prioridad-badge.critico .dot {
-                background: var(--danger-red);
-            }
+    .prioridad-badge.critico .dot {
+        background: var(--danger-red);
+    }
 
-        .prioridad-badge.importante {
-            color: var(--warning-orange);
-        }
+    .prioridad-badge.importante {
+        color: var(--warning-orange);
+    }
 
-            .prioridad-badge.importante .dot {
-                background: var(--warning-orange);
-            }
+    .prioridad-badge.importante .dot {
+        background: var(--warning-orange);
+    }
 
-        .prioridad-badge.baja {
-            color: var(--success-green);
-        }
+    .prioridad-badge.baja {
+        color: var(--success-green);
+    }
 
-            .prioridad-badge.baja .dot {
-                background: var(--success-green);
-            }
+    .prioridad-badge.baja .dot {
+        background: var(--success-green);
+    }
 
     .estado-badge {
         padding: 4px 12px;
@@ -578,45 +750,14 @@
         display: inline-block;
     }
 
-        .estado-badge.abierto {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .estado-badge.asignado {
-            background: #e0f2fe;
-            color: #0369a1;
-        }
-
-        .estado-badge.en-progreso {
-            background: #fef3c7;
-            color: #d97706;
-        }
-
-        .estado-badge.en-espera {
-            background: #fde68a;
-            color: #92400e;
-        }
-
-        .estado-badge.resuelto {
-            background: #d1fae5;
-            color: #059669;
-        }
-
-        .estado-badge.reabierto {
-            background: #fed7d7;
-            color: #c53030;
-        }
-
-        .estado-badge.cerrado {
-            background: #e2e8f0;
-            color: #4a5568;
-        }
-
-        .estado-badge.cancelado {
-            background: #fee2e2;
-            color: #dc2626;
-        }
+    .estado-badge.abierto { background: #dbeafe; color: #1e40af; }
+    .estado-badge.asignado { background: #e0f2fe; color: #0369a1; }
+    .estado-badge.en-progreso { background: #fef3c7; color: #d97706; }
+    .estado-badge.en-espera { background: #fde68a; color: #92400e; }
+    .estado-badge.resuelto { background: #d1fae5; color: #059669; }
+    .estado-badge.reabierto { background: #fed7d7; color: #c53030; }
+    .estado-badge.cerrado { background: #e2e8f0; color: #4a5568; }
+    .estado-badge.cancelado { background: #fee2e2; color: #dc2626; }
 
     /* Acciones */
     .acciones-group {
@@ -639,12 +780,12 @@
         text-decoration: none;
     }
 
-        .action-btn:hover {
-            background: var(--bg-gray);
-            border-color: var(--primary-blue);
-            color: var(--primary-blue);
-            text-decoration: none;
-        }
+    .action-btn:hover {
+        background: var(--bg-gray);
+        border-color: var(--primary-blue);
+        color: var(--primary-blue);
+        text-decoration: none;
+    }
 
     /* Estado vacío */
     .empty-state {
@@ -656,11 +797,11 @@
         color: var(--text-light);
     }
 
-        .empty-content i {
-            font-size: 48px;
-            margin-bottom: 16px;
-            display: block;
-        }
+    .empty-content i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        display: block;
+    }
 
     /* Paginación */
     .pagination-container {
@@ -693,24 +834,72 @@
         text-align: center;
     }
 
-        .page-btn:hover:not(.disabled) {
-            background: var(--bg-gray);
-            border-color: var(--primary-blue);
-            color: var(--primary-blue);
-            text-decoration: none;
-        }
+    .page-btn:hover:not(.disabled) {
+        background: var(--bg-gray);
+        border-color: var(--primary-blue);
+        color: var(--primary-blue);
+        text-decoration: none;
+    }
 
-        .page-btn.active {
-            background: var(--primary-blue);
-            border-color: var(--primary-blue);
-            color: white;
-        }
+    .page-btn.active {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        color: white;
+    }
 
-        .page-btn.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
+    .page-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
 
-   
+    
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle filtros
+        const toggleBtn = document.getElementById('toggleFilters');
+        const filtersPanel = document.getElementById('filtersPanel');
+        const fechaFiltro = document.getElementById('fechaFiltro');
+        const dateRange = document.getElementById('dateRange');
+
+        // Mostrar filtros si ya hay filtros aplicados
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasFilters = urlParams.get('fechaFiltro') || urlParams.get('categoriaId') || 
+                          urlParams.get('estadoId') || urlParams.get('usuarioAsignadoId');
+        
+        if (hasFilters) {
+            filtersPanel.classList.add('active');
+            toggleBtn.classList.add('active');
+        }
+
+        toggleBtn.addEventListener('click', function() {
+            filtersPanel.classList.toggle('active');
+            toggleBtn.classList.toggle('active');
+        });
+
+        // Mostrar/ocultar rango de fechas
+        fechaFiltro.addEventListener('change', function() {
+            if (this.value === 'rango') {
+                dateRange.style.display = 'block';
+            } else {
+                dateRange.style.display = 'none';
+            }
+        });
+
+        // Auto-submit cuando se cambian los filtros rápidos
+        const quickFilters = document.querySelectorAll('.filter-select:not(#fechaFiltro)');
+        quickFilters.forEach(filter => {
+            filter.addEventListener('change', function() {
+                if (this.value !== '') {
+                    // Auto aplicar filtro después de una breve pausa
+                    setTimeout(() => {
+                        document.querySelector('.filters-form').submit();
+                    }, 300);
+                }
+            });
+        });
+    });
+</script>
+
