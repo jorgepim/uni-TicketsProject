@@ -713,6 +713,8 @@ namespace TicketsApp.Controllers
         {
             try
             {
+                var usuarioId = GetCurrentUserId();
+                Console.WriteLine($"Debug - UsuarioId: {usuarioId}");
                 var ticket = await _context.Tickets.FindAsync(ticketId);
                 if (ticket == null)
                 {
