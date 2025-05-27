@@ -1,5 +1,492 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model TicketsApp.Models.ViewModels.EditarTicketAdminViewModel
 @{
+    ViewData["Title"] = $"Editar Ticket TK-{Model.TicketId}";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+@section Styles {
+    <style>
+        .ticket-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-critico {
+            background-color: #fee;
+            color: #dc3545;
+        }
+
+        .priority-importante {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .priority-baja {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .comment-item {
+            border-left: 3px solid #007bff;
+            padding-left: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .attachment-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .btn-remove-file {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .section-title {
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: 600;
+        }
+    </style>
+}
+
+<div class="container-fluid">
+    <!-- Header del Ticket -->
+    <div class="ticket-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-1">@Model.Titulo</h2>
+                <p class="mb-0">
+                    <strong>TK-@Model.TicketId</strong> |
+                    Creado el @Model.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="mb-2">
+                    <span class="status-badge priority-@Model.Prioridad.ToLower()">@Model.Prioridad</span>
+                </div>
+                <small>Estado: @Model.NombreEstado</small>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form asp-action="Editar" method="post" enctype="multipart/form-data" id="editTicketForm">
+        @Html.HiddenFor(m => m.TicketId)
+
+        <div class="row">
+            <!-- Información Principal -->
+            <div class="col-md-8">
+                <!-- Información del Ticket -->
+                <div class="info-card">
+                    <h5 class="section-title">Información del Ticket</h5>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>Aplicación:</strong></label>
+                            <p class="form-control-plaintext">@(Model.AplicacionAfectada ?? "No especificada")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>Empresa:</strong></label>
+                            <p class="form-control-plaintext">@(Model.NombreEmpresa ?? "Fix.now")</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label asp-for="EstadoId" class="form-label"><strong>Estado:</strong></label>
+                            <select asp-for="EstadoId" class="form-select">
+                                @foreach (var estado in ViewBag.Estados as List<EstadoTicket>)
+                                {
+                                    <option value="@estado.EstadoId">@estado.NombreEstado</option>
+                                }
+                            </select>
+                            <span asp-validation-for="EstadoId" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Prioridad" class="form-label"><strong>Prioridad:</strong></label>
+                            <select asp-for="Prioridad" class="form-select">
+                                @foreach (var prioridad in ViewBag.Prioridades as List<string>)
+                                {
+                                    <option value="@prioridad">@prioridad</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Prioridad" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="UsuarioAsignadoId" class="form-label"><strong>Asignado a:</strong></label>
+                            <select asp-for="UsuarioAsignadoId" class="form-select">
+                                <option value="">Sin asignar</option>
+                                @foreach (var usuario in ViewBag.UsuariosInternos)
+                                {
+                                    <option value="@usuario.UsuarioId"
+                                            selected="@(Model.UsuarioAsignadoId == usuario.UsuarioId ? "selected" : null)">
+                                        @usuario.Nombre @usuario.Apellido (@usuario.NombreRol)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div class="info-card">
+                    <h5 class="section-title">Descripción</h5>
+                    <div class="bg-light p-3 rounded">
+                        @Html.Raw(Model.Descripcion?.Replace("\n", "<br/>") ?? "Sin descripción")
+                    </div>
+                </div>
+
+                <!-- Comentarios -->
+                <!-- Sección de Comentarios actualizada para tu vista -->
+                <div class="info-card">
+                    <h5 class="section-title">Comentarios (<span id="comentarios-count">@Model.Comentarios.Count</span>)</h5>
+
+                    <!-- Contenedor de comentarios -->
+                    <div id="comentarios-container" class="mb-4" style="max-height: 400px; overflow-y: auto;">
+                        @if (Model.Comentarios.Any())
+                        {
+                            @foreach (var comentario in Model.Comentarios)
+                            {
+                                <div class="comment-item">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <strong>@comentario.NombreUsuario</strong>
+                                        <div class="text-end">
+                                            <small class="text-muted">@comentario.RolUsuario</small><br>
+                                            <small class="text-muted">@comentario.FechaComentario.ToString("dd/MM/yyyy HH:mm")</small>
+                                        </div>
+                                    </div>
+                                    <p class="mb-0">@Html.Raw(comentario.Comentario.Replace("\n", "<br/>"))</p>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted" id="no-comentarios-message">No hay comentarios aún.</p>
+                        }
+                    </div>
+
+                    <!-- Agregar nuevo comentario -->
+                    <div class="mt-3">
+                        <label for="nuevo-comentario-text" class="form-label"><strong>Agregar comentario:</strong></label>
+                        <textarea id="nuevo-comentario-text" class="form-control" rows="3" placeholder="Escriba su comentario aquí..."></textarea>
+                        <div id="comentario-error" class="text-danger mt-1" style="display: none;"></div>
+                        <div class="mt-2">
+                            <button type="button" id="btn-agregar-comentario" class="btn btn-success">
+                                <i class="fas fa-comment"></i> Agregar Comentario
+                            </button>
+                            <span id="comentario-loading" class="ms-2" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i> Agregando...
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Lateral -->
+            <div class="col-md-4">
+                <!-- Información del Creador -->
+                <div class="info-card">
+                    <h6 class="section-title">Creado por</h6>
+                    <p class="mb-1"><strong>@Model.NombreCreador</strong></p>
+                    <small class="text-muted">@Model.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</small>
+                </div>
+
+                <!-- Archivos Adjuntos -->
+                <div class="info-card">
+                    <h6 class="section-title">Archivos Adjuntos</h6>
+
+                    @if (Model.Adjuntos.Any())
+                    {
+                        <div class="mb-3">
+                            @foreach (var adjunto in Model.Adjuntos)
+                            {
+                                <div class="attachment-item">
+                                    <div>
+                                        <i class="fas fa-file"></i>
+                                        <strong>@adjunto.NombreArchivo</strong><br>
+                                        <small class="text-muted">@adjunto.FechaSubida.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </div>
+                                    <button type="button" class="btn-remove-file" onclick="downloadFile(@adjunto.AdjuntoId)">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-3">No hay archivos adjuntos.</p>
+                    }
+
+                    <!-- Subir nuevos archivos -->
+                    <label class="form-label"><strong>Subir archivos:</strong></label>
+                    <input type="file" asp-for="NuevosAdjuntos" class="form-control" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" id="fileInput">
+                    <small class="form-text text-muted">Máximo 5MB por archivo. Formatos: PDF, DOC, DOCX, JPG, PNG, TXT</small>
+
+                    <!-- Preview de archivos seleccionados -->
+                    <div id="filePreview" class="mt-3"></div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="info-card">
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                    <a href="@Url.Action("Index", "Administrador")" class="btn btn-secondary w-100">
+                        <i class="fas fa-arrow-left"></i> Volver al listado
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnAgregarComentario = document.getElementById('btn-agregar-comentario');
+        const textareaComentario = document.getElementById('nuevo-comentario-text');
+        const comentariosContainer = document.getElementById('comentarios-container');
+        const comentariosCount = document.getElementById('comentarios-count');
+        const comentarioError = document.getElementById('comentario-error');
+        const comentarioLoading = document.getElementById('comentario-loading');
+        const noComentariosMessage = document.getElementById('no-comentarios-message');
+
+        btnAgregarComentario.addEventListener('click', function() {
+            const comentario = textareaComentario.value.trim();
+
+            if (!comentario) {
+                mostrarError('El comentario no puede estar vacío.');
+                return;
+            }
+
+            // Mostrar loading y deshabilitar botón
+            comentarioLoading.style.display = 'inline';
+            btnAgregarComentario.disabled = true;
+            ocultarError();
+
+            // Preparar datos para enviar
+            const formData = new FormData();
+            formData.append('ticketId', '@Model.TicketId');
+            formData.append('comentario', comentario);
+
+            // Agregar token antiforgery
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            formData.append('__RequestVerificationToken', token);
+
+            // Enviar petición AJAX
+            fetch('@Url.Action("AgregarComentario", "Administrador")', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Agregar el nuevo comentario al DOM
+                    agregarComentarioAlDOM(data.comentario);
+
+                    // Limpiar el textarea
+                    textareaComentario.value = '';
+
+                    // Actualizar contador
+                    const nuevoCount = parseInt(comentariosCount.textContent) + 1;
+                    comentariosCount.textContent = nuevoCount;
+
+                    // Ocultar mensaje de "no hay comentarios" si existe
+                    if (noComentariosMessage) {
+                        noComentariosMessage.style.display = 'none';
+                    }
+
+                    // Mostrar mensaje de éxito (opcional)
+                    mostrarMensajeExito('Comentario agregado exitosamente.');
+                } else {
+                    mostrarError(data.message || 'Error al agregar el comentario.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarError('Error de conexión. Intente nuevamente.');
+            })
+            .finally(() => {
+                // Ocultar loading y habilitar botón
+                comentarioLoading.style.display = 'none';
+                btnAgregarComentario.disabled = false;
+            });
+        });
+
+        // Función para agregar comentario al DOM
+        function agregarComentarioAlDOM(comentario) {
+            const fechaFormateada = new Date(comentario.fechaComentario).toLocaleString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const comentarioHTML = `
+                <div class="comment-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <strong>${comentario.nombreUsuario}</strong>
+                        <div class="text-end">
+                            <small class="text-muted">${comentario.rolUsuario}</small><br>
+                            <small class="text-muted">${fechaFormateada}</small>
+                        </div>
+                    </div>
+                    <p class="mb-0">${comentario.comentario.replace(/\n/g, '<br/>')}</p>
+                </div>
+            `;
+
+            comentariosContainer.insertAdjacentHTML('beforeend', comentarioHTML);
+
+            // Hacer scroll al nuevo comentario
+            comentariosContainer.scrollTop = comentariosContainer.scrollHeight;
+        }
+
+        // Función para mostrar errores
+        function mostrarError(mensaje) {
+            comentarioError.textContent = mensaje;
+            comentarioError.style.display = 'block';
+        }
+
+        // Función para ocultar errores
+        function ocultarError() {
+            comentarioError.style.display = 'none';
+        }
+
+        // Función para mostrar mensaje de éxito (opcional)
+        function mostrarMensajeExito(mensaje) {
+            // Crear alerta temporal
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show mt-2';
+            alert.innerHTML = `
+                ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            // Insertar después del botón
+            btnAgregarComentario.parentNode.insertAdjacentElement('afterend', alert);
+
+            // Auto-remover después de 3 segundos
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 3000);
+        }
+
+        // Permitir envío con Enter + Ctrl
+        textareaComentario.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                btnAgregarComentario.click();
+            }
+        });
+    });
+</script>
+
+@section Scripts {
+    <script>
+        // Preview de archivos seleccionados
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const preview = document.getElementById('filePreview');
+            preview.innerHTML = '';
+
+            Array.from(e.target.files).forEach((file, index) => {
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'attachment-item';
+                fileDiv.innerHTML = `
+                    <div>
+                        <i class="fas fa-file"></i>
+                        <strong>${file.name}</strong><br>
+                        <small class="text-muted">${(file.size / 1024).toFixed(1)} KB</small>
+                    </div>
+                    <button type="button" class="btn-remove-file" onclick="removeFile(this, ${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                preview.appendChild(fileDiv);
+            });
+        });
+
+        // Remover archivo de la selección
+        function removeFile(button, index) {
+            const input = document.getElementById('fileInput');
+            const dt = new DataTransfer();
+
+            Array.from(input.files).forEach((file, i) => {
+                if (i !== index) dt.items.add(file);
+            });
+
+            input.files = dt.files;
+            input.dispatchEvent(new Event('change'));
+        }
+
+        // Descargar archivo existente
+        function downloadFile(adjuntoId) {
+            window.location.href = '@Url.Action("DescargarAdjunto", "Home")' + '?id=' + adjuntoId;
+        }
+
+        // Validación del formulario
+        document.getElementById('editTicketForm').addEventListener('submit', function(e) {
+            const comentario = document.querySelector('[name="NuevoComentario"]').value.trim();
+            const files = document.getElementById('fileInput').files.length;
+
+            if (!comentario && files === 0) {
+                // Permitir envío solo para cambios en dropdowns
+                return true;
+            }
+
+            // Mostrar indicador de carga
+            const submitBtn = document.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            submitBtn.disabled = true;
+        });
+    </script>
 }

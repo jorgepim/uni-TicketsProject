@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Claims;
 using TicketsApp.Models;
 using TicketsApp.Models.ViewModels;
+using TicketsApp.Services;
 
 namespace TicketsApp.Controllers
 {
@@ -14,11 +15,13 @@ namespace TicketsApp.Controllers
     public class AdministradorController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<TicketGeneralController> _logger;
         private const int PageSize = 20;
 
-        public AdministradorController(ApplicationDbContext context)
+        public AdministradorController(ApplicationDbContext context, ILogger<TicketGeneralController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index(int page = 1)
@@ -300,5 +303,342 @@ namespace TicketsApp.Controllers
             var result = roles.Select(r => new { value = r.RolId, text = r.NombreRol }).ToList();
             return Json(result);
         }
+
+
+        // Agregar esta acción al AdministradorController
+
+        [HttpGet]
+        public async Task<IActionResult> Editar(int id)
+        {
+            // Consulta principal del ticket
+            var ticket = await _context.Tickets
+                .Where(t => t.TicketId == id)
+                .FirstOrDefaultAsync();
+
+            if (ticket == null)
+            {
+                return NotFound();
+            }
+
+            // Obtener usuario creador
+            var usuarioCreador = await _context.Usuarios
+                .Where(u => u.UsuarioId == ticket.UsuarioCreadorId)
+                .FirstOrDefaultAsync();
+
+            // Obtener empresa si es usuario externo
+            string nombreEmpresa = "Fix.now";
+            if (usuarioCreador?.TipoUsuario == "Externo")
+            {
+                var clienteExterno = await _context.ClientesExternos
+                    .Where(ce => ce.UsuarioId == usuarioCreador.UsuarioId)
+                    .FirstOrDefaultAsync();
+
+                if (clienteExterno != null)
+                {
+                    var empresa = await _context.EmpresasExternas
+                        .Where(e => e.EmpresaId == clienteExterno.EmpresaId)
+                        .FirstOrDefaultAsync();
+                    nombreEmpresa = empresa?.NombreEmpresa ?? "Sin empresa";
+                }
+            }
+
+            // Obtener estado actual
+            var estado = await _context.EstadosTicket
+                .Where(e => e.EstadoId == ticket.EstadoId)
+                .FirstOrDefaultAsync();
+
+            // Obtener asignación actual (la más reciente)
+            var asignacionActual = await _context.Asignaciones
+                .Where(a => a.TicketId == ticket.TicketId)
+                .OrderByDescending(a => a.FechaAsignacion)
+                .FirstOrDefaultAsync();
+
+            // Obtener usuario asignado si existe
+            var usuarioAsignado = asignacionActual != null
+                ? await _context.Usuarios.Where(u => u.UsuarioId == asignacionActual.UsuarioAsignadoId).FirstOrDefaultAsync()
+                : null;
+
+            Console.WriteLine($"Ticket ID: {ticket.TicketId}");
+            Console.WriteLine($"Asignación actual: {asignacionActual?.UsuarioAsignadoId}");
+            Console.WriteLine($"Usuario asignado: {usuarioAsignado?.UsuarioId} - {usuarioAsignado?.Nombre}");
+
+            // Obtener comentarios con usuarios
+            var comentariosQuery = from c in _context.ComentariosTicket
+                                   join u in _context.Usuarios on c.UsuarioId equals u.UsuarioId
+                                   join r in _context.Roles on u.RolId equals r.RolId into roleGroup
+                                   from role in roleGroup.DefaultIfEmpty()
+                                   where c.TicketId == ticket.TicketId
+                                   orderby c.FechaComentario
+                                   select new ComentarioAdminViewModel
+                                   {
+                                       ComentarioId = c.ComentarioId,
+                                       Comentario = c.Comentario,
+                                       //FechaComentario = c.FechaComentario,
+                                       FechaComentario = c.FechaComentario ?? DateTime.MinValue,
+                                       //  FechaCreacion = t.FechaCreacion ?? DateTime.MinValue,
+                                       NombreUsuario = u.Nombre + " " + u.Apellido,
+                                       RolUsuario = role.NombreRol ?? "Sin rol"
+                                   };
+
+            var comentarios = await comentariosQuery.ToListAsync();
+
+            // Obtener adjuntos
+            var adjuntos = await _context.Adjunto
+                .Where(a => a.TicketId == ticket.TicketId)
+                .Select(a => new AdjuntoAdminViewModel
+                {
+                    AdjuntoId = a.AdjuntoId,
+                    NombreArchivo = a.NombreArchivo,
+                    FechaSubida = a.FechaSubida ?? DateTime.MinValue
+                })
+                .ToListAsync();
+
+            // Obtener datos para los dropdowns
+            ViewBag.Estados = await _context.EstadosTicket.ToListAsync();
+            ViewBag.UsuariosInternos = await (from u in _context.Usuarios
+                                              join r in _context.Roles on u.RolId equals r.RolId into roleGroup
+                                              from role in roleGroup.DefaultIfEmpty()
+                                              where u.TipoUsuario == "Interno" && u.Estado == true
+                                              select new
+                                              {
+                                                  u.UsuarioId,
+                                                  u.Nombre,
+                                                  u.Apellido,
+                                                  NombreRol = role.NombreRol ?? "Sin rol"
+                                              }).ToListAsync();
+
+            ViewBag.Prioridades = new List<string> { "Crítico", "Importante", "Baja" };
+
+            var model = new EditarTicketAdminViewModel
+            {
+                TicketId = ticket.TicketId,
+                Titulo = ticket.Titulo,
+                AplicacionAfectada = ticket.AplicacionAfectada,
+                Descripcion = ticket.Descripcion,
+                Prioridad = ticket.Prioridad,
+                EstadoId = ticket.EstadoId ?? 0, // Si es null, asigna 0
+                NombreEstado = estado?.NombreEstado ?? "Sin estado",
+                FechaCreacion = ticket.FechaCreacion ?? DateTime.MinValue,
+                NombreCreador = usuarioCreador != null ? $"{usuarioCreador.Nombre} {usuarioCreador.Apellido}" : "Desconocido",
+                NombreEmpresa = nombreEmpresa,
+                UsuarioAsignadoId = asignacionActual?.UsuarioAsignadoId,
+                NombreUsuarioAsignado = usuarioAsignado != null
+                    ? $"{usuarioAsignado.Nombre} {usuarioAsignado.Apellido}"
+                    : "Sin asignar",
+                Comentarios = comentarios,
+                Adjuntos = adjuntos
+            };
+
+            return View(model);
+        }
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst("UsuarioId");
+            return userIdClaim != null ? int.Parse(userIdClaim.Value) : 0;
+        }
+
+
+        // Agregar este método en tu controlador
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AgregarComentario(int ticketId, string comentario)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(comentario))
+                {
+                    return Json(new { success = false, message = "El comentario no puede estar vacío." });
+                }
+
+                var usuarioId = GetCurrentUserId();
+                Console.WriteLine($"Debug - UsuarioId: {usuarioId}");
+
+                if (usuarioId == 0)
+                {
+                    return Json(new { success = false, message = "Error de autenticación. Por favor, inicie sesión nuevamente." });
+                }
+
+                // Verificar que el ticket existe
+                var ticketExiste = await _context.Tickets.AnyAsync(t => t.TicketId == ticketId);
+                if (!ticketExiste)
+                {
+                    return Json(new { success = false, message = "El ticket no existe." });
+                }
+
+                // Crear el nuevo comentario
+                var nuevoComentario = new ComentariosTicket
+                {
+                    TicketId = ticketId,
+                    UsuarioId = usuarioId,
+                    Comentario = comentario,
+                    FechaComentario = DateTime.Now
+                };
+
+                _context.ComentariosTicket.Add(nuevoComentario);
+                await _context.SaveChangesAsync();
+
+                // Obtener la información del usuario para devolver en la respuesta
+                var usuario = await _context.Usuarios
+                    .Where(u => u.UsuarioId == usuarioId)
+                    .FirstOrDefaultAsync();
+
+                var rol = await _context.Roles
+                    .Where(r => r.RolId == usuario.RolId)
+                    .FirstOrDefaultAsync();
+
+                var comentarioViewModel = new ComentarioAdminViewModel
+                {
+                    ComentarioId = nuevoComentario.ComentarioId,
+                    Comentario = nuevoComentario.Comentario,
+                    FechaComentario = nuevoComentario.FechaComentario ?? DateTime.Now,
+                    NombreUsuario = $"{usuario.Nombre} {usuario.Apellido}",
+                    RolUsuario = rol?.NombreRol ?? "Sin rol"
+                };
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Comentario agregado exitosamente.",
+                    comentario = comentarioViewModel
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log del error si tienes un sistema de logging
+                // _logger.LogError(ex, "Error al agregar comentario");
+
+                return Json(new { success = false, message = "Error interno del servidor." });
+            }
+        }
+
+
+        /* [HttpPost]
+         public async Task<IActionResult> Editar(EditarTicketAdminViewModel model)
+         {
+             if (!ModelState.IsValid)
+             {
+                 // Recargar datos para los dropdowns si hay error
+                 ViewBag.Estados = await _context.EstadosTicket.ToListAsync();
+                 ViewBag.UsuariosInternos = await (from u in _context.Usuarios
+                                                   join r in _context.Roles on u.RolId equals r.RolId into roleGroup
+                                                   from role in roleGroup.DefaultIfEmpty()
+                                                   where u.TipoUsuario == "Interno" && u.Estado == true
+                                                   select new
+                                                   {
+                                                       u.UsuarioId,
+                                                       u.Nombre,
+                                                       u.Apellido,
+                                                       NombreRol = role.NombreRol ?? "Sin rol"
+                                                   }).ToListAsync();
+                 ViewBag.Prioridades = new List<string> { "Crítico", "Importante", "Baja" };
+
+                 return View(model);
+             }
+
+             using var transaction = await _context.Database.BeginTransactionAsync();
+             try
+             {
+                 var ticket = await _context.Tickets
+                     .Where(t => t.TicketId == model.TicketId)
+                     .FirstOrDefaultAsync();
+
+                 if (ticket == null)
+                 {
+                     return NotFound();
+                 }
+
+                 // Actualizar datos del ticket
+                 ticket.Prioridad = model.Prioridad;
+                 ticket.EstadoId = model.EstadoId;
+
+                 // Manejar asignación si cambió
+                 if (model.UsuarioAsignadoId.HasValue)
+                 {
+                     var asignacionActual = await _context.Asignaciones
+                         .Where(a => a.TicketId == model.TicketId)
+                         .OrderByDescending(a => a.FechaAsignacion)
+                         .FirstOrDefaultAsync();
+
+                     if (asignacionActual == null || asignacionActual.UsuarioAsignadoId != model.UsuarioAsignadoId.Value)
+                     {
+                         var nuevaAsignacion = new Asignacion
+                         {
+                             TicketId = model.TicketId,
+                             UsuarioAsignadoId = model.UsuarioAsignadoId.Value,
+                             FechaAsignacion = DateTime.Now,
+                             ComentarioAsignacion = "Asignación actualizada desde edición"
+                         };
+                         _context.Asignaciones.Add(nuevaAsignacion);
+                     }
+                 }
+
+                 // Agregar nuevo comentario si se proporcionó
+                 if (!string.IsNullOrWhiteSpace(model.NuevoComentario))
+                 {
+                     var usuarioId = int.Parse(User.FindFirst("UsuarioId")?.Value ?? "0");
+                     var comentario = new ComentariosTicket
+                     {
+                         TicketId = model.TicketId,
+                         UsuarioId = usuarioId,
+                         Comentario = model.NuevoComentario,
+                         FechaComentario = DateTime.Now
+                     };
+                     _context.ComentariosTicket.Add(comentario);
+                 }
+
+                 // Procesar nuevos archivos adjuntos
+                 if (model.NuevosAdjuntos != null && model.NuevosAdjuntos.Any())
+                 {
+                     var fileService = HttpContext.RequestServices.GetRequiredService<IFileService>();
+                     var rutasArchivos = await fileService.GuardarArchivosAsync(model.NuevosAdjuntos, ticket.TicketId);
+
+                     foreach (var ruta in rutasArchivos)
+                     {
+                         var adjunto = new Adjunto
+                         {
+                             TicketId = ticket.TicketId,
+                             NombreArchivo = Path.GetFileName(ruta),
+                             RutaArchivo = ruta,
+                             FechaSubida = DateTime.Now
+                         };
+                         _context.Adjunto.Add(adjunto);
+                     }
+                 }
+
+                 await _context.SaveChangesAsync();
+                 await transaction.CommitAsync();
+
+                 TempData["SuccessMessage"] = $"Ticket TK-{model.TicketId} actualizado exitosamente.";
+                 return RedirectToAction("Editar", new { id = model.TicketId });
+             }
+             catch (Exception ex)
+             {
+                 await transaction.RollbackAsync();
+                 _logger.LogError(ex, "Error al actualizar ticket {TicketId}", model.TicketId);
+                 ModelState.AddModelError("", "Ocurrió un error al actualizar el ticket.");
+
+                 // Recargar datos para los dropdowns
+                 ViewBag.Estados = await _context.EstadosTicket.ToListAsync();
+                 ViewBag.UsuariosInternos = await (from u in _context.Usuarios
+                                                   join r in _context.Roles on u.RolId equals r.RolId into roleGroup
+                                                   from role in roleGroup.DefaultIfEmpty()
+                                                   where u.TipoUsuario == "Interno" && u.Estado == true
+                                                   select new
+                                                   {
+                                                       u.UsuarioId,
+                                                       u.Nombre,
+                                                       u.Apellido,
+                                                       NombreRol = role.NombreRol ?? "Sin rol"
+                                                   }).ToListAsync();
+                 ViewBag.Prioridades = new List<string> { "Crítico", "Importante", "Baja" };
+
+                 return View(model);
+             }
+         }
+ */
+
+
+
+        // end class
     }
 }
