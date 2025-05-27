@@ -17,11 +17,13 @@ namespace TicketsApp.Controllers
         private readonly ApplicationDbContext _context;
         private readonly ILogger<TicketGeneralController> _logger;
         private const int PageSize = 20;
+        private readonly IFileService _fileService;
 
-        public AdministradorController(ApplicationDbContext context, ILogger<TicketGeneralController> logger)
+        public AdministradorController(ApplicationDbContext context, ILogger<TicketGeneralController> logger, IFileService fileService)
         {
             _context = context;
             _logger = logger;
+            _fileService = fileService;
         }
 
         public async Task<IActionResult> Index(int page = 1)
@@ -511,7 +513,89 @@ namespace TicketsApp.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubirAdjuntos(int ticketId, List<IFormFile> nuevosAdjuntos)
+        {
+            if (nuevosAdjuntos == null || !nuevosAdjuntos.Any())
+            {
+                return BadRequest(new { success = false, message = "No se recibieron archivos." });
+            }
 
+            try
+            {
+                var rutasArchivos = await _fileService.GuardarArchivosAsync(nuevosAdjuntos, ticketId);
+
+                // 1. Preparamos una lista para guardar las nuevas entidades de Adjunto  
+                var listaNuevosAdjuntos = new List<Adjunto>();
+
+                foreach (var ruta in rutasArchivos)
+                {
+                    var adjunto = new Adjunto
+                    {
+                        TicketId = ticketId,
+                        NombreArchivo = Path.GetFileName(ruta),
+                        RutaArchivo = ruta,
+                        FechaSubida = DateTime.Now
+                    };
+                    listaNuevosAdjuntos.Add(adjunto);
+                }
+
+                // 2. Agregamos todas las entidades al contexto de una vez  
+                _context.Adjunto.AddRange(listaNuevosAdjuntos);
+
+                // 3. Guardamos todos los cambios en la base de datos en UNA SOLA TRANSACCIÓN (MÉTODO EFICIENTE)  
+                await _context.SaveChangesAsync();
+
+                // 4. Ahora que ya se guardaron y tienen un ID, preparamos la respuesta JSON  
+                var nuevosAdjuntosInfo = listaNuevosAdjuntos.Select(adj => new
+                {
+                    adjuntoId = adj.AdjuntoId,
+                    nombreArchivo = adj.NombreArchivo,
+                    fechaSubida = adj.FechaSubida?.ToString("dd/MM/yyyy HH:mm"), // Fixed CS1501 issue  
+                    urlDescarga = Url.Action("DownloadFile", "Administrador", new { id = adj.AdjuntoId })
+                }).ToList();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Archivos subidos correctamente.",
+                    nuevosArchivos = nuevosAdjuntosInfo
+                });
+            }
+            catch (Exception) // Removed unused variable 'ex' to fix CS0168  
+            {
+                return StatusCode(500, new { success = false, message = "Ocurrió un error interno en el servidor." });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadFile(int id)
+        {
+            var adjunto = await _context.Adjunto.FindAsync(id);
+
+            if (adjunto == null)
+            {
+                return NotFound();
+            }
+
+            var rutaCompleta = _fileService.ObtenerRutaCompleta(adjunto.RutaArchivo);
+
+            if (!System.IO.File.Exists(rutaCompleta))
+            {
+                return NotFound("El archivo no se encuentra en el servidor.");
+            }
+
+            var memory = new MemoryStream();
+            using (var stream = new FileStream(rutaCompleta, FileMode.Open))
+            {
+                await stream.CopyToAsync(memory);
+            }
+            memory.Position = 0;
+
+            // "application/octet-stream" fuerza la descarga en el navegador
+            return File(memory, "application/octet-stream", adjunto.NombreArchivo);
+        }
         /* [HttpPost]
          public async Task<IActionResult> Editar(EditarTicketAdminViewModel model)
          {

@@ -240,46 +240,83 @@
                 </div>
 
                 <!-- Archivos Adjuntos -->
-                <div class="info-card">
-                    <h6 class="section-title">Archivos Adjuntos</h6>
+                <div class="info-card mb-4">
+                    <h6 class="section-title">Archivos Adjuntos Existentes</h6>
 
-                    @if (Model.Adjuntos.Any())
-                    {
-                        <div class="mb-3">
+                    @* Damos un ID a este contenedor para poder agregar nuevos archivos dinámicamente *@
+                    <div id="existing-files-list">
+                        @if (Model.Adjuntos.Any())
+                        {
                             @foreach (var adjunto in Model.Adjuntos)
                             {
-                                <div class="attachment-item">
+                                <div class="attachment-item" id="adjunto-@adjunto.AdjuntoId">
                                     <div>
                                         <i class="fas fa-file"></i>
                                         <strong>@adjunto.NombreArchivo</strong><br>
                                         <small class="text-muted">@adjunto.FechaSubida.ToString("dd/MM/yyyy HH:mm")</small>
                                     </div>
-                                    <button type="button" class="btn-remove-file" onclick="downloadFile(@adjunto.AdjuntoId)">
+                                    <a href="@Url.Action("DownloadFile", "Administrador", new { id = adjunto.AdjuntoId })" class="btn-remove-file" title="Descargar Archivo">
                                         <i class="fas fa-download"></i>
-                                    </button>
+                                    </a>
                                 </div>
                             }
+                        }
+                        else
+                        {
+                            <p id="no-files-message" class="text-muted mb-3">No hay archivos adjuntos.</p>
+                        }
+                    </div>
+                </div>
+                <div class="info-card mb-4">
+                    <div class="card border-primary">
+                        <div class="card-header bg-light border-primary">
+                            <h6 class="mb-0 text-primary fw-bold">
+                                <i class="fas fa-paperclip me-2"></i>Adjuntar Nuevos Archivos
+                            </h6>
                         </div>
-                    }
-                    else
-                    {
-                        <p class="text-muted mb-3">No hay archivos adjuntos.</p>
-                    }
+                        <div class="card-body">
+                            @* El input de archivo está oculto, igual que antes *@
+                            <input type="file" id="fileInput" class="d-none" multiple
+                                   accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.zip,.rar">
 
-                    <!-- Subir nuevos archivos -->
-                    <label class="form-label"><strong>Subir archivos:</strong></label>
-                    <input type="file" asp-for="NuevosAdjuntos" class="form-control" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" id="fileInput">
-                    <small class="form-text text-muted">Máximo 5MB por archivo. Formatos: PDF, DOC, DOCX, JPG, PNG, TXT</small>
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <button type="button" id="selectFileBtn" class="btn btn-outline-primary"><i class="fas fa-plus me-1"></i>Agregar Archivo</button>
+                                        <button type="button" id="selectMultipleBtn" class="btn btn-outline-secondary"><i class="fas fa-copy me-1"></i>Selección Múltiple</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="alert alert-info mb-0 py-2">
+                                        <small><i class="fas fa-info-circle me-1"></i><strong>Tamaño máximo:</strong> 10MB</small>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <!-- Preview de archivos seleccionados -->
-                    <div id="filePreview" class="mt-3"></div>
+                            @* La previsualización de archivos no cambia *@
+                            <div id="filePreview" class="mt-4 d-none">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="text-primary mb-0 fw-bold"><i class="fas fa-list me-1"></i>Archivos para subir (<span id="fileCount">0</span>)</h6>
+                                    <button type="button" id="clearAllBtn" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash me-1"></i>Limpiar Todo</button>
+                                </div>
+                                <div id="fileList" class="border rounded bg-light p-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* --- BOTÓN DE ACCIÓN PARA SUBIR ARCHIVOS --- *@
+                <div class="info-card">
+                    <button type="button" id="uploadButton" class="btn btn-primary w-100">
+                        <i class="fas fa-upload"></i> Subir Adjuntos
+                    </button>
                 </div>
 
                 <!-- Botones de Acción -->
                 <div class="info-card">
-                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                    @* <button type="submit" class="btn btn-primary w-100 mb-2">
                         <i class="fas fa-save"></i> Guardar Cambios
-                    </button>
+                    </button> *@
                     <a href="@Url.Action("Index", "Administrador")" class="btn btn-secondary w-100">
                         <i class="fas fa-arrow-left"></i> Volver al listado
                     </a>
@@ -433,60 +470,170 @@
 
 @section Scripts {
     <script>
-        // Preview de archivos seleccionados
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const preview = document.getElementById('filePreview');
-            preview.innerHTML = '';
+        // Obtener los elementos del DOM
+        const fileInput = document.getElementById('fileInput');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const selectMultipleBtn = document.getElementById('selectMultipleBtn');
+        const filePreview = document.getElementById('filePreview');
+        const fileList = document.getElementById('fileList'); // Nuevo: Contenedor para la lista de archivos
+        const fileCountSpan = document.getElementById('fileCount'); // Nuevo: Para actualizar el contador
+        const clearAllBtn = document.getElementById('clearAllBtn'); // Nuevo: Botón para limpiar todo
 
-            Array.from(e.target.files).forEach((file, index) => {
-                const fileDiv = document.createElement('div');
-                fileDiv.className = 'attachment-item';
-                fileDiv.innerHTML = `
-                    <div>
-                        <i class="fas fa-file"></i>
-                        <strong>${file.name}</strong><br>
-                        <small class="text-muted">${(file.size / 1024).toFixed(1)} KB</small>
-                    </div>
-                    <button type="button" class="btn-remove-file" onclick="removeFile(this, ${index})">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-                preview.appendChild(fileDiv);
-            });
+        // Array para almacenar los archivos seleccionados para subir
+        let filesToUpload = [];
+
+        // Vincular el click de los botones al input de tipo file
+        selectFileBtn.addEventListener('click', function() {
+            // Desactiva la selección múltiple si solo quieres agregar un archivo
+            fileInput.removeAttribute('multiple');
+            fileInput.click(); // Simula el click en el input de archivo
         });
 
-        // Remover archivo de la selección
-        function removeFile(button, index) {
-            const input = document.getElementById('fileInput');
-            const dt = new DataTransfer();
+        selectMultipleBtn.addEventListener('click', function() {
+            // Activa la selección múltiple
+            fileInput.setAttribute('multiple', 'multiple');
+            fileInput.click(); // Simula el click en el input de archivo
+        });
 
-            Array.from(input.files).forEach((file, i) => {
-                if (i !== index) dt.items.add(file);
-            });
+        // Manejar el evento 'change' del input de archivo
+        fileInput.addEventListener('change', function(e) {
+            const newFiles = Array.from(e.target.files);
 
-            input.files = dt.files;
-            input.dispatchEvent(new Event('change'));
-        }
-
-        // Descargar archivo existente
-        function downloadFile(adjuntoId) {
-            window.location.href = '@Url.Action("DescargarAdjunto", "Home")' + '?id=' + adjuntoId;
-        }
-
-        // Validación del formulario
-        document.getElementById('editTicketForm').addEventListener('submit', function(e) {
-            const comentario = document.querySelector('[name="NuevoComentario"]').value.trim();
-            const files = document.getElementById('fileInput').files.length;
-
-            if (!comentario && files === 0) {
-                // Permitir envío solo para cambios en dropdowns
-                return true;
+            // Si se selecciona un solo archivo y el input no tiene 'multiple', reemplaza los archivos
+            if (!fileInput.hasAttribute('multiple')) {
+                filesToUpload = newFiles;
+            } else {
+                // Si es selección múltiple, agrega los nuevos archivos y filtra duplicados por nombre
+                newFiles.forEach(newFile => {
+                    if (!filesToUpload.some(existingFile => existingFile.name === newFile.name && existingFile.size === newFile.size)) {
+                        filesToUpload.push(newFile);
+                    }
+                });
             }
 
-            // Mostrar indicador de carga
-            const submitBtn = document.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-            submitBtn.disabled = true;
+            updateFileList();
+        });
+
+        // Función para actualizar la lista de archivos en la previsualización
+        function updateFileList() {
+            fileList.innerHTML = ''; // Limpiar la lista actual
+            if (filesToUpload.length > 0) {
+                filePreview.classList.remove('d-none');
+                filesToUpload.forEach((file, index) => {
+                    const fileDiv = document.createElement('div');
+                    fileDiv.className = 'attachment-item';
+                    fileDiv.innerHTML = `
+                        <div>
+                            <i class="fas fa-file"></i>
+                            <strong>${file.name}</strong><br>
+                            <small class="text-muted">${(file.size / 1024).toFixed(2)} KB</small>
+                        </div>
+                        <button type="button" class="btn-remove-file" onclick="removeFile(${index})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    fileList.appendChild(fileDiv);
+                });
+            } else {
+                filePreview.classList.add('d-none');
+            }
+            fileCountSpan.textContent = filesToUpload.length; // Actualizar el contador
+        }
+
+        // Función para remover un archivo de la selección
+        // Esta función debe ser global o accesible desde el HTML
+        window.removeFile = function(index) {
+            filesToUpload.splice(index, 1); // Elimina el archivo del array
+            updateFileList(); // Vuelve a renderizar la lista
+            // Resetear el input file para permitir seleccionar el mismo archivo si es necesario
+            fileInput.value = '';
+        };
+
+        // Limpiar todos los archivos seleccionados
+        clearAllBtn.addEventListener('click', function() {
+            filesToUpload = []; // Vaciar el array
+            fileInput.value = ''; // Limpiar el input file
+            updateFileList(); // Actualizar la vista
+        });
+
+        // --- Lógica para la subida de archivos vía AJAX ---
+        const uploadButton = document.getElementById('uploadButton');
+        uploadButton.addEventListener('click', async function() {
+            if (filesToUpload.length === 0) {
+                alert('Por favor, selecciona al menos un archivo para subir.');
+                return;
+            }
+
+            const formData = new FormData();
+            const ticketId = @Model.TicketId; // Asegúrate de que Model.TicketId esté disponible
+
+            formData.append('ticketId', ticketId);
+
+            // Agregar cada archivo al FormData
+            filesToUpload.forEach(file => {
+                formData.append('nuevosAdjuntos', file);
+            });
+
+            // Agregar token antiforgery
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            formData.append('__RequestVerificationToken', token);
+
+
+            // Deshabilitar botón y mostrar spinner
+            uploadButton.disabled = true;
+            uploadButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Subiendo...';
+
+            try {
+                const response = await fetch('@Url.Action("SubirAdjuntos", "Administrador")', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    // Limpiar la lista de archivos para subir
+                    filesToUpload = [];
+                    fileInput.value = '';
+                    updateFileList(); // Ocultar la sección de previsualización
+
+                    // Opcional: Actualizar la lista de archivos existentes en el DOM
+                    const existingFilesList = document.getElementById('existing-files-list');
+                    const noFilesMessage = document.getElementById('no-files-message');
+
+                    if (noFilesMessage) {
+                        noFilesMessage.remove(); // Eliminar el mensaje "No hay archivos adjuntos"
+                    }
+
+                    data.nuevosArchivos.forEach(adjunto => {
+                        const adjuntoDiv = document.createElement('div');
+                        adjuntoDiv.className = 'attachment-item';
+                        adjuntoDiv.id = `adjunto-${adjunto.adjuntoId}`;
+                        adjuntoDiv.innerHTML = `
+                            <div>
+                                <i class="fas fa-file"></i>
+                                <strong>${adjunto.nombreArchivo}</strong><br>
+                                <small class="text-muted">${adjunto.fechaSubida}</small>
+                            </div>
+                            <a href="${adjunto.urlDescarga}" class="btn-remove-file" title="Descargar Archivo">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        `;
+                        existingFilesList.appendChild(adjuntoDiv);
+                    });
+
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error al subir archivos:', error);
+                alert('Ocurrió un error al subir los archivos. Intenta de nuevo.');
+            } finally {
+                // Habilitar botón y restaurar texto
+                uploadButton.disabled = false;
+                uploadButton.innerHTML = '<i class="fas fa-upload"></i> Subir Adjuntos';
+            }
         });
     </script>
 }
