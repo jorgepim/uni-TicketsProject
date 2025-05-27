@@ -43,6 +43,7 @@ namespace TicketsApp.Services
                 Console.WriteLine($"Error enviando el correo: {ex.Message}");
             }
         }
+
         public string GenerarCuerpoCorreo(string ticketId, string titulo, string estadoAnterior, string estadoNuevo, string descripcion)
         {
             return $@"
