@@ -58,6 +58,10 @@ namespace TicketsApp.Controllers
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
                 .Include(t => t.Adjunto)
+               .Include(t => t.ComentariosTicket)
+                .ThenInclude(c => c.Usuario)
+        .ThenInclude(u => u.Rol)
+
                 .FirstOrDefaultAsync(t => t.TicketId == id);
 
             if (ticket == null)
@@ -174,7 +178,7 @@ namespace TicketsApp.Controllers
             {
                 UsuarioId = usuarioId,
                 TicketId = ticketId,
-                Mensaje = $"Se agregaron nuevos comentarios y/o archivos. El ticket volvió a estado 'Abierto'.",
+                Mensaje = $"Se agregaron nuevos comentarios y/o archivos.",
                 FechaEnvio = DateTime.Now,
                 Leido = false
             };

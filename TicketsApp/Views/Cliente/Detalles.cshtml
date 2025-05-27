@@ -136,6 +136,38 @@
         }
     </div>
 
+    @if (Model.ComentariosTicket != null && Model.ComentariosTicket.Any())
+    {
+        <div class="card mt-5">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Comentarios</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var comentario in Model.ComentariosTicket.OrderByDescending(c => c.FechaComentario))
+                {
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>
+                                @comentario.Usuario?.Nombre @comentario.Usuario?.Apellido
+                            </strong>
+                            <small class="text-muted">
+                                @comentario.FechaComentario?.ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        </div>
+                        <p class="mt-2 mb-0">@comentario.Comentario</p>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info mt-4">
+            Este ticket no tiene comentarios todavía.
+        </div>
+    }
+
+
 
     @if (puedeEditar)
     {
