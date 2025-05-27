@@ -1,0 +1,562 @@
+import { useState, useEffect } from "react";
+import { Button, Modal, Form, Row, Col, Container, Table, Spinner, InputGroup } from "react-bootstrap";
+import { Eye, EyeOff } from "lucide-react";
+import Swal from "sweetalert2";
+import clienteApi from "../../api/clienteApi";
+
+const UsuarioAdministrador = () => {
+  const [showModal, setShowModal] = useState(false);
+  const [usuarios, setUsuarios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
+  const [esDetalle, setEsDetalle] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const especialidadesDisponibles = [
+    "Pediatría",
+    "Neurología",
+    "Psiquiatría Infantil",
+    "Psicología Clínica",
+    "Terapia del lenguaje",
+  ];
+
+  const [form, setForm] = useState({
+    email: "",
+    contrasena: "",
+    confirmarContrasena: "",
+    rol: "administrador",
+    nombre: "",
+    apellido: "",
+    direccion: "",
+    activo: true,
+    especialista: {
+      telefono: "",
+      especialidad: "",
+      cod_especialista: "",
+    },
+  });
+
+  const generarCodigoEspecialista = () => {
+    const timestamp = Date.now().toString();
+    const random = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0");
+    return `ESP${timestamp.slice(-6)}${random}`;
+  };
+
+  const formatearTelefono = (value) => {
+    const numeros = value.replace(/\D/g, "");
+    if (numeros.length <= 4) {
+      return numeros;
+    } else if (numeros.length <= 9) {
+      return `${numeros.slice(0, 4)}-${numeros.slice(4)}`;
+    }
+    return `${numeros.slice(0, 4)}-${numeros.slice(4, 9)}`;
+  };
+
+  const obtenerUsuarios = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await clienteApi.get("/usuario/usuarios", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUsuarios(response.data);
+    } catch (error) {
+      console.error("Error al obtener usuarios:", error);
+      Swal.fire("Error", "No se pudieron cargar los usuarios.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    obtenerUsuarios();
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+
+    if (name === "telefono") {
+      const telefonoFormateado = formatearTelefono(value);
+      setForm({
+        ...form,
+        especialista: {
+          ...form.especialista,
+          telefono: telefonoFormateado,
+        },
+      });
+    } else if (name in form.especialista) {
+      setForm({
+        ...form,
+        especialista: {
+          ...form.especialista,
+          [name]: value,
+        },
+      });
+    } else {
+      setForm({
+        ...form,
+        [name]: type === "checkbox" ? checked : value,
+      });
+    }
+  };
+
+  const handleRolChange = (e) => {
+    const nuevoRol = e.target.value;
+    const nuevoCodigo = nuevoRol === "especialista" ? generarCodigoEspecialista() : "";
+
+    setForm({
+      ...form,
+      rol: nuevoRol,
+      especialista: {
+        ...form.especialista,
+        cod_especialista: nuevoCodigo,
+      },
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validar contraseñas solo en modo creación
+    if (!modoEdicion && form.contrasena !== form.confirmarContrasena) {
+      Swal.fire("Error", "Las contraseñas no coinciden", "error");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+
+      if (modoEdicion && usuarioSeleccionado) {
+        // eslint-disable-next-line no-unused-vars
+        const { contrasena, confirmarContrasena, ...formSinPassword } = form;
+        await clienteApi.put(`/usuario/${usuarioSeleccionado}`, formSinPassword, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        Swal.fire("Actualizado", "Usuario actualizado correctamente", "success");
+      } else {
+        // eslint-disable-next-line no-unused-vars
+        const { confirmarContrasena, ...formData } = form;
+        const response = await clienteApi.post("/usuario", formData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.status === 201) {
+          Swal.fire("Éxito", "Usuario creado correctamente", "success");
+        }
+      }
+      setShowModal(false);
+      setModoEdicion(false);
+      setUsuarioSeleccionado(null);
+      setEsDetalle(false);
+
+      obtenerUsuarios();
+    } catch (err) {
+      const msg = err.response?.data?.error || "Error al guardar usuario";
+      Swal.fire("Error", msg, "error");
+    }
+  };
+
+  const handleDetalle = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await clienteApi.get(`/usuario/detalles/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = response.data;
+      const usuarioFormateado = {
+        email: data.email,
+        contrasena: "",
+        confirmarContrasena: "",
+        rol: data.rol,
+        nombre: data.nombre,
+        apellido: data.apellido,
+        direccion: data.direccion,
+        activo: data.activo,
+        especialista: {
+          telefono: data.especialista?.telefono || "",
+          especialidad: data.especialista?.especialidad || "",
+          cod_especialista: data.especialista?.cod_especialista || "",
+        },
+      };
+
+      setForm(usuarioFormateado);
+      setModoEdicion(false);
+      setShowModal(true);
+      setEsDetalle(true);
+      // eslint-disable-next-line no-unused-vars
+    } catch (err) {
+      Swal.fire("Error", "No se pudo obtener el detalle del usuario", "error");
+    }
+  };
+
+  const handleEditar = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await clienteApi.get(`/usuario/detalles/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = response.data;
+      setUsuarioSeleccionado(id);
+      setForm({
+        email: data.email,
+        contrasena: "",
+        confirmarContrasena: "",
+        rol: data.rol,
+        nombre: data.nombre,
+        apellido: data.apellido,
+        direccion: data.direccion,
+        activo: data.activo,
+        especialista: {
+          telefono: data.especialista?.telefono || "",
+          especialidad: data.especialista?.especialidad || "",
+          cod_especialista: data.especialista?.cod_especialista || "",
+        },
+      });
+      setModoEdicion(true);
+      setShowModal(true);
+      setEsDetalle(false);
+      // eslint-disable-next-line no-unused-vars
+    } catch (err) {
+      Swal.fire("Error", "No se pudo obtener el usuario para editar", "error");
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    const confirmacion = await Swal.fire({
+      title: "¿Estás seguro?",
+      text: "Esto desactivará el usuario de forma permanente.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, desactivar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (confirmacion.isConfirmed) {
+      try {
+        const token = localStorage.getItem("token");
+        await clienteApi.delete(`/usuario/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        Swal.fire("Desactivado", "El usuario ha sido desactivado", "success");
+        obtenerUsuarios();
+        // eslint-disable-next-line no-unused-vars
+      } catch (err) {
+        Swal.fire("Error", "No se pudo desactivar el usuario", "error");
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!showModal) {
+      setModoEdicion(false);
+      setEsDetalle(false);
+      setUsuarioSeleccionado(null);
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+      setForm({
+        email: "",
+        contrasena: "",
+        confirmarContrasena: "",
+        rol: "administrador",
+        nombre: "",
+        apellido: "",
+        direccion: "",
+        activo: true,
+        especialista: {
+          telefono: "",
+          especialidad: "",
+          cod_especialista: "",
+        },
+      });
+    }
+  }, [showModal]);
+
+  return (
+    <Container fluid>
+      <h3 className="mb-4">Administrar Usuarios</h3>
+      <Button
+        className="mb-3"
+        onClick={() => {
+          setForm({
+            email: "",
+            contrasena: "",
+            confirmarContrasena: "",
+            rol: "administrador",
+            nombre: "",
+            apellido: "",
+            direccion: "",
+            activo: true,
+            especialista: {
+              telefono: "",
+              especialidad: "",
+              cod_especialista: "",
+            },
+          });
+          setModoEdicion(false);
+          setUsuarioSeleccionado(null);
+          setEsDetalle(false);
+          setShowModal(true);
+        }}
+      >
+        Agregar Usuario
+      </Button>
+
+      <Modal show={showModal} onHide={() => setShowModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {esDetalle ? "Detalles del Usuario" : modoEdicion ? "Editar Usuario" : "Nuevo Usuario"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleSubmit}>
+            <Row>
+              <Col md={12}>
+                <Form.Group className="mb-2">
+                  <Form.Label>Email</Form.Label>
+                  <Form.Control
+                    className="border"
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    required
+                    disabled={esDetalle || (!modoEdicion && usuarioSeleccionado !== null)}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {!esDetalle && !modoEdicion && (
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-2">
+                    <Form.Label>Contraseña</Form.Label>
+                    <InputGroup>
+                      <Form.Control
+                        className="border"
+                        type={showPassword ? "text" : "password"}
+                        name="contrasena"
+                        value={form.contrasena}
+                        onChange={handleChange}
+                        required
+                      />
+                      <Button
+                        variant="outline-secondary"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{ border: "1px solid #ced4da", borderLeft: "none" }}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </InputGroup>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-2">
+                    <Form.Label>Confirmar Contraseña</Form.Label>
+                    <InputGroup>
+                      <Form.Control
+                        className="border"
+                        type={showConfirmPassword ? "text" : "password"}
+                        name="confirmarContrasena"
+                        value={form.confirmarContrasena}
+                        onChange={handleChange}
+                        required
+                      />
+                      <Button
+                        variant="outline-secondary"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        style={{ border: "1px solid #ced4da", borderLeft: "none" }}
+                      >
+                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </InputGroup>
+                  </Form.Group>
+                </Col>
+              </Row>
+            )}
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-2">
+                  <Form.Label>Nombre</Form.Label>
+                  <Form.Control
+                    className="border"
+                    type="text"
+                    name="nombre"
+                    value={form.nombre}
+                    onChange={handleChange}
+                    required
+                    disabled={esDetalle}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-2">
+                  <Form.Label>Apellido</Form.Label>
+                  <Form.Control
+                    className="border"
+                    type="text"
+                    name="apellido"
+                    value={form.apellido}
+                    onChange={handleChange}
+                    required
+                    disabled={esDetalle}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Form.Group className="mb-2">
+              <Form.Label>Dirección</Form.Label>
+              <Form.Control
+                className="border"
+                type="text"
+                name="direccion"
+                value={form.direccion}
+                onChange={handleChange}
+                required
+                disabled={esDetalle}
+              />
+            </Form.Group>
+
+            <Row>
+              <Col md={modoEdicion || esDetalle ? 6 : 12}>
+                <Form.Group className="mb-2">
+                  <Form.Label>Rol</Form.Label>
+                  <Form.Select name="rol" value={form.rol} onChange={handleRolChange} disabled={esDetalle}>
+                    <option value="administrador">Administrador</option>
+                    <option value="especialista">Especialista</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              {(modoEdicion || esDetalle) && (
+                <Col md={6}>
+                  <Form.Group className="mb-2">
+                    <Form.Label>Estado</Form.Label>
+                    <Form.Check
+                      type="checkbox"
+                      name="activo"
+                      label="Usuario Activo"
+                      checked={form.activo}
+                      onChange={handleChange}
+                      disabled={esDetalle}
+                      className="mt-2"
+                    />
+                  </Form.Group>
+                </Col>
+              )}
+            </Row>
+
+            {form.rol === "especialista" && (
+              <>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-2">
+                      <Form.Label>Teléfono</Form.Label>
+                      <Form.Control
+                        className="border"
+                        type="text"
+                        name="telefono"
+                        value={form.especialista.telefono}
+                        onChange={handleChange}
+                        placeholder="0000-00000"
+                        maxLength="10"
+                        required
+                        disabled={esDetalle}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-2">
+                      <Form.Label>Especialidad</Form.Label>
+                      <Form.Select
+                        name="especialidad"
+                        value={form.especialista.especialidad}
+                        onChange={handleChange}
+                        required
+                        disabled={esDetalle}
+                      >
+                        <option value="">Seleccione una especialidad</option>
+                        {especialidadesDisponibles.map((especialidad) => (
+                          <option key={especialidad} value={especialidad}>
+                            {especialidad}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Form.Group className="mb-2">
+                  <Form.Label>Código Especialista</Form.Label>
+                  <Form.Control
+                    className="border"
+                    type="text"
+                    name="cod_especialista"
+                    value={form.especialista.cod_especialista}
+                    readOnly
+                    style={{ backgroundColor: "#f8f9fa" }}
+                  />
+                  <Form.Text className="text-muted">Código generado automáticamente</Form.Text>
+                </Form.Group>
+              </>
+            )}
+
+            {!esDetalle && (
+              <Button variant="primary" type="submit" className="mt-3 w-100">
+                {modoEdicion ? "Actualizar Usuario" : "Guardar Usuario"}
+              </Button>
+            )}
+          </Form>
+        </Modal.Body>
+      </Modal>
+      {loading ? (
+        <div className="text-center">
+          <Spinner animation="border" variant="primary" />
+        </div>
+      ) : (
+        <Table striped bordered hover responsive className="text-center">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Rol</th>
+              <th>Activo</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {usuarios.map((usuario) => (
+              <tr key={usuario.id_usuario}>
+                <td>{`${usuario.nombre} ${usuario.apellido}`}</td>
+                <td>{usuario.email}</td>
+                <td>{usuario.rol}</td>
+                <td>{usuario.activo ? "Sí" : "No"}</td>
+                <td>
+                  <div className="d-flex justify-content-center gap-2">
+                    <Button variant="info" size="sm" onClick={() => handleDetalle(usuario.id_usuario)}>
+                      Detalles
+                    </Button>
+                    <Button variant="warning" size="sm" onClick={() => handleEditar(usuario.id_usuario)}>
+                      Editar
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={() => handleEliminar(usuario.id_usuario)}>
+                      Desactivar
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
+    </Container>
+  );
+};
+
+export default UsuarioAdministrador;
