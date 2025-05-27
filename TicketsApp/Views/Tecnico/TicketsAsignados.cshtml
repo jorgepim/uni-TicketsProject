@@ -5,6 +5,11 @@
     Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css" />
+}
+
 <style>
     .filtro-btn {
         background-color: #4a6793;
@@ -27,10 +32,10 @@
         border-spacing: 0 8px;
     }
 
-    .tabla-tickets th, .tabla-tickets td {
-        padding: 12px;
-        text-align: left;
-    }
+        .tabla-tickets th, .tabla-tickets td {
+            padding: 12px;
+            text-align: left;
+        }
 
     .btn-detalles {
         background-color: #4a6793;
@@ -55,15 +60,8 @@
 </style>
 
 <div class="container mt-4">
-
     <div class="seccion-tickets">
         <h4 class="text-primary fw-semibold mb-4">Tickets Asignados</h4>
-
-        <!-- Filtros (opcional, sin funcionalidad por ahora) -->
-        <div class="mb-4 d-flex gap-3">
-            <button class="filtro-btn">Aplicación</button>
-            <button class="filtro-btn">Prioridad</button>
-        </div>
 
         @if (Model == null || !Model.Any())
         {
@@ -73,7 +71,7 @@
         {
             <!-- Tabla -->
             <div class="tabla-contenedor">
-                <table class="tabla-tickets w-100">
+                <table id="tablaTicket" class="tabla-tickets display nowrap w-100">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -82,7 +80,7 @@
                             <th>Estado</th>
                             <th>Prioridad</th>
                             <th>Fecha Creación</th>
-                            <th></th>
+                            <th>Acción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,3 +106,19 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#tablaTicket').DataTable({
+                responsive: true,
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-MX.json"
+                }
+            });
+        });
+    </script>
+}

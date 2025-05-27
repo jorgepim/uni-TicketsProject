@@ -5,6 +5,11 @@
     Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css" />
+}
+
 <style>
     .filtro-btn {
         background-color: #4a6793;
@@ -27,14 +32,15 @@
         border-spacing: 0 8px;
     }
 
-    .tabla-tickets thead {
-        background-color: #f2f2f2;
-    }
+        .tabla-tickets th, .tabla-tickets td {
+            padding: 12px;
+            text-align: left;
+        }
 
-    .tabla-tickets th, .tabla-tickets td {
-        padding: 12px;
-        text-align: left;
-    }
+        .tabla-tickets thead {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
 
     .btn-detalles {
         background-color: #4a6793;
@@ -54,32 +60,28 @@
 </style>
 
 <div class="container mt-4">
-
     <div class="seccion-tickets">
         <h4 class="text-primary fw-semibold mb-4">Tickets Recibidos</h4>
 
-        <!-- Filtros -->
-        <div class="mb-4 d-flex gap-3">
-            <button class="filtro-btn">Categoría</button>
-            <button class="filtro-btn">Estado</button>
-        </div>
-
-        <!-- Tabla -->
-        <div class="tabla-contenedor">
-            <table class="tabla-tickets w-100">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Título del Ticket</th>
-                        <th>Categoría</th>
-                        <th>Estado</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        foreach (var ticket in Model)
+        @if (Model == null || !Model.Any())
+        {
+            <div class="alert alert-info">No tienes tickets recibidos en este momento.</div>
+        }
+        else
+        {
+            <div class="tabla-contenedor">
+                <table id="tablaTicket" class="tabla-tickets display nowrap w-100">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Título del Ticket</th>
+                            <th>Categoría</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ticket in Model)
                         {
                             <tr style="border-bottom: 1px solid #ccc;">
                                 <td>@ticket.TicketId.ToString("00")</td>
@@ -87,19 +89,31 @@
                                 <td>@ticket.Categoria?.Nombre</td>
                                 <td>@ticket.Estado?.NombreEstado</td>
                                 <td>
-                                    <a asp-action="Detalles" asp-route-id="@ticket.TicketId" class="btn-detalles">Ver Detalles</a>
+                                    <a asp-action="Detalles" asp-route-id="@ticket.TicketId" class="btn-detalles">
+                                        Ver Detalles
+                                    </a>
                                 </td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-3">No hay tickets disponibles.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#tablaTicket').DataTable({
+                responsive: true,
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-MX.json"
+                }
+            });
+        });
+    </script>
+}
