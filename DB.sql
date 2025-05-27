@@ -98,7 +98,7 @@ CREATE TABLE HistorialEstadosTicket (
 );
 
 -- Tabla Adjuntos
-CREATE TABLE Adjuntos (
+CREATE TABLE Adjunto (
     AdjuntoId INT PRIMARY KEY IDENTITY,
     TicketId INT,
     NombreArchivo NVARCHAR(255),
@@ -151,4 +151,14 @@ INSERT INTO Categorias (Nombre, Descripcion) VALUES
 ('Correo Electrónico', 'Problemas o configuración de cuentas de email.'),
 ('Software Empresarial', 'Errores o solicitudes en aplicaciones internas de la empresa.'),
 ('Impresoras y Escáneres', 'Reportes sobre mal funcionamiento o instalación.'),
-('Seguridad Informática', 'Reportes de vulnerabilidades, antivirus, o accesos no autorizados.');
+('Seguridad Informática', 'Reportes de vulnerabilidades, antivirus, o accesos no autorizados.');
+
+INSERT INTO EstadosTicket (NombreEstado) VALUES
+('Abierto'),
+('Asignado'),
+('En Progreso'),
+('En Espera'),
+('Resuelto'),
+('Reabierto'),
+('Cerrado'),
+('Cancelado');

@@ -19,7 +19,6 @@ namespace TicketsApp.Models
         public DbSet<HistorialEstadoTicket> HistorialEstadosTicket { get; set; }
         public DbSet<Adjunto> Adjunto { get; set; }
         public DbSet<Asignacion> Asignaciones { get; set; }
-        public DbSet<TareaColaborativa> TareasColaborativas { get; set; }
         public DbSet<ComentariosTicket> ComentariosTicket { get; set; }
         public DbSet<Notificacion> Notificaciones { get; set; }
 

@@ -1,0 +1,47 @@
+﻿@model List<TicketsApp.Models.Ticket>
+
+@{
+    ViewData["Title"] = "Tickets Creados";
+    Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
+}
+
+<h2>Mis Tickets Creados</h2>
+
+@if (!Model.Any())
+{
+    <p>No has creado ningún ticket.</p>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Título</th>
+                <th>Categoría</th>
+                <th>Estado</th>
+                <th>Prioridad</th>
+                <th>Fecha de Creación</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ticket in Model)
+            {
+                <tr>
+                    <td>@ticket.TicketId</td>
+                    <td>@ticket.Titulo</td>
+                    <td>@ticket.Categoria?.Nombre</td>
+                    <td>@ticket.Estado?.NombreEstado</td>
+                    <td>@ticket.Prioridad</td>
+                    <td>@ticket.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>
+                        <a asp-controller="Tecnico" asp-action="DetalleCreados" asp-route-id="@ticket.TicketId" class="btn btn-sm btn-primary">
+                            Ver Detalles
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

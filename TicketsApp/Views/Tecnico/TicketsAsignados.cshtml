@@ -1,0 +1,49 @@
+﻿@model List<TicketsApp.Models.Ticket>
+
+@{
+    ViewData["Title"] = "Tickets Asignados";
+    Layout = "~/Views/Shared/_LayoutTecnico.cshtml"; // Ajusta según tu layout
+}
+
+<h2>Tickets Asignados</h2>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">
+        No tienes tickets asignados en este momento.
+    </div>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Título</th>
+                <th>Aplicación</th>
+                <th>Estado</th>
+                <th>Prioridad</th>
+                <th>Fecha Creación</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ticket in Model)
+            {
+                <tr>
+                    <td>@ticket.TicketId</td>
+                    <td>@ticket.Titulo</td>
+                    <td>@ticket.AplicacionAfectada</td>
+                    <td>@ticket.Estado?.NombreEstado</td>
+                    <td>@ticket.Prioridad</td>
+                    <td>@ticket.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>
+                        <a asp-controller="Tecnico" asp-action="Detalles" asp-route-id="@ticket.TicketId" class="btn btn-sm btn-primary">
+                            Ver Detalles
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
