@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using System.Net.Sockets;
 using System.Security.Claims;
 using TicketsApp.Models;
 using TicketsApp.Models.ViewModels;
@@ -18,12 +19,14 @@ namespace TicketsApp.Controllers
         private readonly ILogger<TicketGeneralController> _logger;
         private const int PageSize = 20;
         private readonly IFileService _fileService;
+        private readonly EmailService _emailService;
 
-        public AdministradorController(ApplicationDbContext context, ILogger<TicketGeneralController> logger, IFileService fileService)
+        public AdministradorController(ApplicationDbContext context, ILogger<TicketGeneralController> logger, IFileService fileService, EmailService emailService )
         {
             _context = context;
             _logger = logger;
             _fileService = fileService;
+            _emailService = emailService;
         }
 
         public async Task<IActionResult> Index(int page = 1, string fechaFiltro = "", DateTime? fechaInicio = null,
@@ -501,7 +504,7 @@ namespace TicketsApp.Controllers
                 var estadoTicket = await _context.EstadosTicket
                     .Where(e => e.EstadoId == ticket.EstadoId)
                     .FirstOrDefaultAsync();
-
+                string EstadoAntes = ticket.Estado.NombreEstado;
                 bool esEditable = estadoTicket?.NombreEstado != "Cerrado" &&
                                  estadoTicket?.NombreEstado != "Cancelado";
 
@@ -568,6 +571,38 @@ namespace TicketsApp.Controllers
                     // para conservar el valor anterior
 
                     _context.Asignaciones.Update(asignacionExistente);
+
+                    var usuarioCreador = await _context.Usuarios.FindAsync(ticket.UsuarioCreadorId);
+                    var asignacion = await _context.Asignaciones
+                .FirstOrDefaultAsync(a => a.TicketId == ticket.TicketId);
+
+                    Usuario? usuarioAsignado = null;
+                    if (asignacion != null)
+                    {
+                        usuarioAsignado = await _context.Usuarios.FindAsync(asignacion.UsuarioAsignadoId);
+                    }
+
+
+                    // Generar cuerpo del correo
+                    string cuerpoCorreo = _emailService.GenerarCuerpoCorreo(
+                        ticket.TicketId.ToString(),
+                        ticket.Titulo,
+                        EstadoAntes,  // Estado anterior
+                        ticket.Estado.NombreEstado,  // Nuevo estado
+                        ticket.Descripcion
+                    );
+
+                    // Enviar correo al creador del ticket
+                    if (usuarioCreador != null)
+                    {
+                        await _emailService.SendEmailAsync(usuarioCreador.Email, "Cambio de Estado del Ticket", cuerpoCorreo);
+                    }
+
+                    // Enviar correo al técnico asignado
+                    if (usuarioAsignado != null)
+                    {
+                        await _emailService.SendEmailAsync(usuarioAsignado.Email, "Cambio de Estado del Ticket", cuerpoCorreo);
+                    }
                     mensajeAccion = usuarioAsignadoId.HasValue ? "Ticket reasignado correctamente" : "Asignación removida correctamente";
                 }
                 else
@@ -580,8 +615,10 @@ namespace TicketsApp.Controllers
                         FechaAsignacion = DateTime.Now,
                         ComentarioAsignacion = comentarioAsignacion // Aquí sí puede ser null en primera asignación
                     };
-
+                    
                     _context.Asignaciones.Add(nuevaAsignacion);
+
+
                     mensajeAccion = "Ticket asignado correctamente";
 
                     // Solo cambiar estado a 'Asignado' (EstadoId = 2) en la PRIMERA asignación
@@ -589,6 +626,38 @@ namespace TicketsApp.Controllers
                     {
                         ticket.EstadoId = 2; // Estado 'Asignado'
                         _context.Tickets.Update(ticket);
+
+                        var usuarioCreador = await _context.Usuarios.FindAsync(ticket.UsuarioCreadorId);
+                        var asignacion = await _context.Asignaciones
+                    .FirstOrDefaultAsync(a => a.TicketId == ticket.TicketId);
+
+                        Usuario? usuarioAsignado = null;
+                        if (asignacion != null)
+                        {
+                            usuarioAsignado = await _context.Usuarios.FindAsync(asignacion.UsuarioAsignadoId);
+                        }
+
+
+                        // Generar cuerpo del correo
+                        string cuerpoCorreo = _emailService.GenerarCuerpoCorreo(
+                            ticket.TicketId.ToString(),
+                            ticket.Titulo,
+                            EstadoAntes,  // Estado anterior
+                            ticket.Estado.NombreEstado,  // Nuevo estado
+                            ticket.Descripcion
+                        );
+
+                        // Enviar correo al creador del ticket
+                        if (usuarioCreador != null)
+                        {
+                            await _emailService.SendEmailAsync(usuarioCreador.Email, "Cambio de Estado del Ticket", cuerpoCorreo);
+                        }
+
+                        // Enviar correo al técnico asignado
+                        if (usuarioAsignado != null)
+                        {
+                            await _emailService.SendEmailAsync(usuarioAsignado.Email, "Cambio de Estado del Ticket", cuerpoCorreo);
+                        }
                     }
                 }
 
@@ -809,12 +878,14 @@ namespace TicketsApp.Controllers
             {
                 var usuarioId = GetCurrentUserId();
                 Console.WriteLine($"Debug - UsuarioId: {usuarioId}");
-                var ticket = await _context.Tickets.FindAsync(ticketId);
+                var ticket = await _context.Tickets
+     .Include(t => t.Estado)  // Asegúrate de cargar la relación con Estado
+     .FirstOrDefaultAsync(t => t.TicketId == ticketId);
                 if (ticket == null)
                 {
                     return Json(new { success = false, message = "Ticket no encontrado" });
                 }
-
+                string EstadoAntes = ticket.Estado.NombreEstado;
                 // Verificar que el estado existe
                 var estado = await _context.EstadosTicket.FindAsync(estadoId);
                 if (estado == null)
@@ -825,6 +896,38 @@ namespace TicketsApp.Controllers
                 // Actualizar el estado
                 ticket.EstadoId = estadoId;
                 await _context.SaveChangesAsync();
+
+                var usuarioCreador = await _context.Usuarios.FindAsync(ticket.UsuarioCreadorId);
+                var asignacion = await _context.Asignaciones
+            .FirstOrDefaultAsync(a => a.TicketId == ticket.TicketId);
+
+                Usuario? usuarioAsignado = null;
+                if (asignacion != null)
+                {
+                    usuarioAsignado = await _context.Usuarios.FindAsync(asignacion.UsuarioAsignadoId);
+                }
+
+
+                // Generar cuerpo del correo
+                string cuerpoCorreo = _emailService.GenerarCuerpoCorreo(
+                    ticket.TicketId.ToString(),
+                    ticket.Titulo,
+                    EstadoAntes,  // Estado anterior
+                    ticket.Estado.NombreEstado,  // Nuevo estado
+                    ticket.Descripcion
+                );
+
+                // Enviar correo al creador del ticket
+                if (usuarioCreador != null)
+                {
+                    await _emailService.SendEmailAsync(usuarioCreador.Email, "Cambio de Estado del Ticket", cuerpoCorreo);
+                }
+
+                // Enviar correo al técnico asignado
+                if (usuarioAsignado != null)
+                {
+                    await _emailService.SendEmailAsync(usuarioAsignado.Email, "Cambio de Estado del Ticket", cuerpoCorreo);
+                }
 
                 return Json(new
                 {
@@ -913,6 +1016,29 @@ namespace TicketsApp.Controllers
                 _context.ComentariosTicket.Add(nuevoComentario);
                 await _context.SaveChangesAsync();
 
+                var ticket = await _context.Tickets
+                .Include(t => t.Adjunto)
+                .FirstOrDefaultAsync(t => t.TicketId == ticketId && t.UsuarioCreadorId == usuarioId);
+
+
+                string cuerpoCorreoComentario = _emailService.GenerarCuerpoCorreoComentario(ticket.TicketId.ToString(), ticket.Titulo, comentario, "Creador del Ticket");
+                string emailCreador = await _context.Usuarios
+                    .Where(u => u.UsuarioId == ticket.UsuarioCreadorId)
+                    .Select(u => u.Email)
+                    .FirstOrDefaultAsync();
+                await _emailService.SendEmailAsync(emailCreador, "Nuevo Comentario en el Ticket", cuerpoCorreoComentario);
+                var asignacion = await _context.Asignaciones
+       .FirstOrDefaultAsync(a => a.TicketId == ticket.TicketId);
+
+                Usuario? usuarioAsignado = null;
+                if (asignacion != null)
+                {
+                    usuarioAsignado = await _context.Usuarios.FindAsync(asignacion.UsuarioAsignadoId);
+                    if (usuarioAsignado != null)
+                    {
+                        await _emailService.SendEmailAsync(usuarioAsignado.Email, "Nuevo Comentario en el Ticket", cuerpoCorreoComentario);
+                    }
+                }
                 // Obtener la información del usuario para devolver en la respuesta
                 var usuario = await _context.Usuarios
                     .Where(u => u.UsuarioId == usuarioId)
@@ -980,6 +1106,30 @@ namespace TicketsApp.Controllers
 
                 // 3. Guardamos todos los cambios en la base de datos en UNA SOLA TRANSACCIÓN (MÉTODO EFICIENTE)  
                 await _context.SaveChangesAsync();
+                var ticket = await _context.Tickets
+                .Include(t => t.Adjunto)
+                .FirstOrDefaultAsync(t => t.TicketId == ticketId);
+
+                var cuerpoCorreoAdjunto = _emailService.GenerarCuerpoCorreoAdjunto(ticket.TicketId.ToString(), ticket.Titulo, "Archivo Adjunto", "Creador del Ticket");
+                string emailCreador = await _context.Usuarios
+                    .Where(u => u.UsuarioId == ticket.UsuarioCreadorId)
+                    .Select(u => u.Email)
+                    .FirstOrDefaultAsync();
+                await _emailService.SendEmailAsync(emailCreador, "Nuevo Archivo Adjunto en el Ticket", cuerpoCorreoAdjunto);
+
+                // Enviar correo al técnico asignado
+                var asignacion = await _context.Asignaciones
+       .FirstOrDefaultAsync(a => a.TicketId == ticket.TicketId);
+
+                Usuario? usuarioAsignado = null;
+                if (asignacion != null)
+                {
+                    usuarioAsignado = await _context.Usuarios.FindAsync(asignacion.UsuarioAsignadoId);
+                    if (usuarioAsignado != null)
+                    {
+                        await _emailService.SendEmailAsync(usuarioAsignado.Email, "Nuevo Archivo Adjunto en el Ticket", cuerpoCorreoAdjunto);
+                    }
+                }
 
                 // 4. Ahora que ya se guardaron y tienen un ID, preparamos la respuesta JSON  
                 var nuevosAdjuntosInfo = listaNuevosAdjuntos.Select(adj => new
