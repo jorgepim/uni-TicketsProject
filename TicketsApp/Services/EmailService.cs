@@ -72,5 +72,62 @@ namespace TicketsApp.Services
             </body>
             </html>";
         }
+        public string GenerarCuerpoCorreoComentario(string ticketId, string titulo, string comentario, string usuarioNombre)
+        {
+            return $@"
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; }}
+            .header {{ background-color: #007bff; color: white; padding: 10px; text-align: center; }}
+            .content {{ padding: 20px; }}
+            .footer {{ text-align: center; font-size: 0.9em; color: #aaa; }}
+        </style>
+    </head>
+    <body>
+        <div class='header'>
+            <h2>Nuevo Comentario en el Ticket #{ticketId}</h2>
+        </div>
+        <div class='content'>
+            <p><strong>Título:</strong> {titulo}</p>
+            <p><strong>Comentario:</strong> {comentario}</p>
+            <p><strong>Comentado por:</strong> {usuarioNombre}</p>
+        </div>
+        <div class='footer'>
+            <p>Gracias por utilizar nuestro sistema de tickets. Si tienes alguna pregunta, no dudes en ponerte en contacto con nosotros.</p>
+        </div>
+    </body>
+    </html>";
+        }
+        public string GenerarCuerpoCorreoAdjunto(string ticketId, string titulo, string archivoNombre, string usuarioNombre)
+        {
+            return $@"
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; }}
+        .header {{ background-color: #28a745; color: white; padding: 10px; text-align: center; }}
+        .content {{ padding: 20px; }}
+        .footer {{ text-align: center; font-size: 0.9em; color: #aaa; }}
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <h2>Nuevo Archivo Adjunto en el Ticket #{ticketId}</h2>
+    </div>
+    <div class='content'>
+        <p><strong>Título:</strong> {titulo}</p>
+        <p><strong>Archivo Adjunto:</strong> {archivoNombre}</p>
+        <p><strong>Subido por:</strong> {usuarioNombre}</p>
+    </div>
+    <div class='footer'>
+        <p>Gracias por utilizar nuestro sistema de tickets. Si tienes alguna pregunta, no dudes en ponerte en contacto con nosotros.</p>
+    </div>
+</body>
+</html>";
+        }
+
+
+
     }
 }

@@ -8,16 +8,18 @@ namespace TicketsApp.Controllers
 {
 
     [Authorize(Roles = "Cliente")]
-    
+
     public class ClienteController : Controller
     {
 
         private readonly ApplicationDbContext _context;
+        private readonly EmailService _emailService;
 
-        public ClienteController(ApplicationDbContext context)
+        public ClienteController(ApplicationDbContext context, EmailService emailService)
         {
 
             _context = context;
+            _emailService = emailService;
         }
 
         public IActionResult Index()
@@ -98,6 +100,25 @@ namespace TicketsApp.Controllers
 
                 _context.ComentariosTicket.Add(comentario);
                 hayCambios = true;
+               
+                string cuerpoCorreoComentario = _emailService.GenerarCuerpoCorreoComentario(ticket.TicketId.ToString(), ticket.Titulo, nuevoComentario, "Creador del Ticket");
+                string emailCreador = await _context.Usuarios
+                    .Where(u => u.UsuarioId == ticket.UsuarioCreadorId)
+                    .Select(u => u.Email)
+                    .FirstOrDefaultAsync();
+                await _emailService.SendEmailAsync(emailCreador, "Nuevo Comentario en el Ticket", cuerpoCorreoComentario);
+                var asignacion = await _context.Asignaciones
+       .FirstOrDefaultAsync(a => a.TicketId == ticket.TicketId);
+
+                Usuario? usuarioAsignado = null;
+                if (asignacion != null)
+                {
+                    usuarioAsignado = await _context.Usuarios.FindAsync(asignacion.UsuarioAsignadoId);
+                    if (usuarioAsignado != null)
+                    {
+                        await _emailService.SendEmailAsync(usuarioAsignado.Email, "Nuevo Comentario en el Ticket", cuerpoCorreoComentario);
+                    }
+                }
             }
 
             if (nuevosAdjuntos != null && nuevosAdjuntos.Any())
@@ -117,6 +138,27 @@ namespace TicketsApp.Controllers
                     _context.Adjunto.Add(adjunto);
                 }
                 hayCambios = true;
+
+                var cuerpoCorreoAdjunto = _emailService.GenerarCuerpoCorreoAdjunto(ticket.TicketId.ToString(), ticket.Titulo, "Archivo Adjunto", "Creador del Ticket");
+                string emailCreador = await _context.Usuarios
+                    .Where(u => u.UsuarioId == ticket.UsuarioCreadorId)
+                    .Select(u => u.Email)
+                    .FirstOrDefaultAsync();
+                await _emailService.SendEmailAsync(emailCreador, "Nuevo Archivo Adjunto en el Ticket", cuerpoCorreoAdjunto);
+
+                // Enviar correo al técnico asignado
+                var asignacion = await _context.Asignaciones
+       .FirstOrDefaultAsync(a => a.TicketId == ticket.TicketId);
+
+                Usuario? usuarioAsignado = null;
+                if (asignacion != null)
+                {
+                    usuarioAsignado = await _context.Usuarios.FindAsync(asignacion.UsuarioAsignadoId);
+                    if (usuarioAsignado != null)
+                    {
+                        await _emailService.SendEmailAsync(usuarioAsignado.Email, "Nuevo Archivo Adjunto en el Ticket", cuerpoCorreoAdjunto);
+                    }
+                }
             }
 
             if (!hayCambios)
@@ -124,10 +166,10 @@ namespace TicketsApp.Controllers
                 return BadRequest("Debe agregar al menos un comentario o archivo.");
             }
 
-            
+
             //ticket.EstadoId = estadoAbiertoId;
 
-            
+
             var notificacion = new Notificacion
             {
                 UsuarioId = usuarioId,
