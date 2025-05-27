@@ -464,7 +464,15 @@ namespace TicketsApp.Controllers
                     // ACTUALIZAR asignación existente
                     asignacionExistente.UsuarioAsignadoId = usuarioAsignadoId;
                     asignacionExistente.FechaAsignacion = DateTime.Now;
-                    asignacionExistente.ComentarioAsignacion = comentarioAsignacion;
+
+                    // SOLO actualizar el comentario si se proporciona uno nuevo
+                    // Si no se proporciona, conservar el comentario anterior
+                    if (!string.IsNullOrWhiteSpace(comentarioAsignacion))
+                    {
+                        asignacionExistente.ComentarioAsignacion = comentarioAsignacion;
+                    }
+                    // Si comentarioAsignacion es null o vacío, NO tocar el campo ComentarioAsignacion
+                    // para conservar el valor anterior
 
                     _context.Asignaciones.Update(asignacionExistente);
                     mensajeAccion = usuarioAsignadoId.HasValue ? "Ticket reasignado correctamente" : "Asignación removida correctamente";
@@ -477,7 +485,7 @@ namespace TicketsApp.Controllers
                         TicketId = ticketId,
                         UsuarioAsignadoId = usuarioAsignadoId,
                         FechaAsignacion = DateTime.Now,
-                        ComentarioAsignacion = comentarioAsignacion
+                        ComentarioAsignacion = comentarioAsignacion // Aquí sí puede ser null en primera asignación
                     };
 
                     _context.Asignaciones.Add(nuevaAsignacion);
