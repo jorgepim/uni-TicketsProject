@@ -6,8 +6,8 @@ namespace TicketsApp.Models
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
-
         }
+
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Rol> Roles { get; set; }
         public DbSet<EmpresaExterna> EmpresasExternas { get; set; }
@@ -19,7 +19,10 @@ namespace TicketsApp.Models
         public DbSet<HistorialEstadoTicket> HistorialEstadosTicket { get; set; }
         public DbSet<Adjunto> Adjunto { get; set; }
         public DbSet<Asignacion> Asignaciones { get; set; }
+
+        // ✅ Nombre corregido
         public DbSet<ComentariosTicket> ComentariosTicket { get; set; }
+
         public DbSet<Notificacion> Notificaciones { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -30,7 +33,6 @@ namespace TicketsApp.Models
             modelBuilder.Entity<UsuarioCategoria>()
                 .HasKey(uc => new { uc.UsuarioId, uc.CategoriaId });
 
-            // Relaciones con Usuario y Categoria
             modelBuilder.Entity<UsuarioCategoria>()
                 .HasOne(uc => uc.Usuario)
                 .WithMany()
@@ -41,11 +43,20 @@ namespace TicketsApp.Models
                 .WithMany()
                 .HasForeignKey(uc => uc.CategoriaId);
 
+            modelBuilder.Entity<Usuario>()
+                .Property(u => u.Estado)
+                .HasDefaultValue(true);
 
+            modelBuilder.Entity<Notificacion>()
+                .Property(n => n.Leido)
+                .HasDefaultValue(false);
 
-            // Configuraciones adicionales si necesitás
-            modelBuilder.Entity<Usuario>().Property(u => u.Estado).HasDefaultValue(true);
-            modelBuilder.Entity<Notificacion>().Property(n => n.Leido).HasDefaultValue(false);
+            // ✅ Relación Ticket ⇄ ComentarioTicket
+            modelBuilder.Entity<ComentariosTicket>()
+                .HasOne(ct => ct.Ticket)
+                .WithMany(t => t.ComentariosTicket)
+                .HasForeignKey(ct => ct.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

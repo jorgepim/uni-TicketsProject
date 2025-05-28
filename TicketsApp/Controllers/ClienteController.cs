@@ -58,43 +58,50 @@ namespace TicketsApp.Controllers
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
                 .Include(t => t.Adjunto)
+
                .Include(t => t.ComentariosTicket)
                 .ThenInclude(c => c.Usuario)
         .ThenInclude(u => u.Rol)
 
+
+                .Include(t => t.ComentariosTicket)
+                    .ThenInclude(c => c.Usuario)
+                    
                 .FirstOrDefaultAsync(t => t.TicketId == id);
 
             if (ticket == null)
                 return NotFound();
 
+            ViewBag.UsuarioActualId = int.Parse(User.FindFirst("UsuarioId")?.Value ?? "0");
+            ViewBag.UsuarioCreadorId = ticket.UsuarioCreadorId;
+
             return View(ticket);
         }
+
+
+
+
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AgregarAdjuntosYComentarios(int ticketId, List<IFormFile>? nuevosAdjuntos, string? nuevoComentario)
         {
-            int usuarioId = int.Parse(User.FindFirst("UsuarioId").Value);
+            int usuarioId = int.Parse(User.FindFirst("UsuarioId")!.Value);
 
             var ticket = await _context.Tickets
                 .Include(t => t.Adjunto)
-                .FirstOrDefaultAsync(t => t.TicketId == ticketId && t.UsuarioCreadorId == usuarioId);
+                .Include(t => t.ComentariosTicket)
+                .FirstOrDefaultAsync(t => t.TicketId == ticketId);
 
             if (ticket == null)
-                return NotFound("Ticket no encontrado o no pertenece al usuario.");
-
-            const int estadoEnEsperaId = 4; // Estado "En Espera"
-            const int estadoAbiertoId = 1;  // Estado "Abierto"
-
-            if (ticket.EstadoId != estadoEnEsperaId)
-            {
-                return BadRequest("Solo se pueden agregar archivos y comentarios a tickets en estado 'En Espera'.");
-            }
+                return NotFound("Ticket no encontrado.");
 
             bool hayCambios = false;
 
+            // Insertar nuevo comentario
             if (!string.IsNullOrWhiteSpace(nuevoComentario))
             {
-                var comentario = new ComentariosTicket
+                var nuevo = new ComentariosTicket
                 {
                     TicketId = ticketId,
                     UsuarioId = usuarioId,
@@ -102,7 +109,7 @@ namespace TicketsApp.Controllers
                     FechaComentario = DateTime.Now
                 };
 
-                _context.ComentariosTicket.Add(comentario);
+                _context.ComentariosTicket.Add(nuevo);
                 hayCambios = true;
                
                 string cuerpoCorreoComentario = _emailService.GenerarCuerpoCorreoComentario(ticket.TicketId.ToString(), ticket.Titulo, nuevoComentario, "Creador del Ticket");
@@ -125,6 +132,7 @@ namespace TicketsApp.Controllers
                 }
             }
 
+            // Adjuntar archivos
             if (nuevosAdjuntos != null && nuevosAdjuntos.Any())
             {
                 var fileService = HttpContext.RequestServices.GetRequiredService<IFileService>();
@@ -141,6 +149,7 @@ namespace TicketsApp.Controllers
                     };
                     _context.Adjunto.Add(adjunto);
                 }
+
                 hayCambios = true;
 
                 var cuerpoCorreoAdjunto = _emailService.GenerarCuerpoCorreoAdjunto(ticket.TicketId.ToString(), ticket.Titulo, "Archivo Adjunto", "Creador del Ticket");
@@ -166,6 +175,7 @@ namespace TicketsApp.Controllers
             }
 
             if (!hayCambios)
+
             {
                 return BadRequest("Debe agregar al menos un comentario o archivo.");
             }
@@ -174,22 +184,29 @@ namespace TicketsApp.Controllers
             //ticket.EstadoId = estadoAbiertoId;
 
 
+
+                return BadRequest("Debe ingresar al menos un comentario o archivo adjunto.");
+
+            // Crear notificación
+
             var notificacion = new Notificacion
             {
                 UsuarioId = usuarioId,
                 TicketId = ticketId,
+
                 Mensaje = $"Se agregaron nuevos comentarios y/o archivos.",
+
+                Mensaje = "Se agregó un nuevo comentario o archivo al ticket.",
+
                 FechaEnvio = DateTime.Now,
                 Leido = false
             };
 
             _context.Notificaciones.Add(notificacion);
-
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Detalles", new { id = ticketId });
         }
-
 
 
     }
