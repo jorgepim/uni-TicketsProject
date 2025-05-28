@@ -1,31 +1,923 @@
-﻿@{
+﻿@using System.Linq
+@model List<TicketsApp.Models.ViewModels.TicketAdminViewModel>
+
+@{
     ViewData["Title"] = "Admin";
     Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+
+    // Paginación
+    int pageSize = 20;
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalTickets = ViewBag.TotalTickets ?? 0;
+    int totalPages = (int)Math.Ceiling((double)totalTickets / pageSize);
 }
 
-<div class="text-left">
-    <div class="mb-4">
-       @*  <p class="display-4 fs-2 fw-normal">Panel de Administrador</p> *@
-
+<div class="admin-container">
+    <!-- Welcome Section -->
+    <div class="welcome-section">
         @if (!string.IsNullOrEmpty(ViewBag.NombreCompleto as string))
         {
-            <div class="alert">
-                <h5 class="mb-1">
-                    <i class="bi bi-person-circle me-2"></i>
-                    Bienvenido, @ViewBag.NombreCompleto
-                </h5>
-                <small class="text-muted">
-                    @ViewBag.Email | Rol: @ViewBag.Rol
-                </small>
+            <div class="welcome-card">
+                <div class="welcome-content">
+                    <div class="welcome-icon">
+                        <i class="icon-user"></i>
+                    </div>
+                    <div class="welcome-info">
+                        <h4 class="welcome-title">Bienvenido, @ViewBag.NombreCompleto</h4>
+                        <p class="welcome-details">@ViewBag.Email | Rol: @ViewBag.Rol</p>
+                    </div>
+                </div>
             </div>
         }
     </div>
-    <a href="@Url.Action("AgregarUsuario")" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Agregar Usuario
-    </a>
-    <a href="@Url.Action("Crear", "TicketGeneral", new { returnUrl = Url.ActionContext.HttpContext.Request.Path })" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Crear Nuevo Ticket
-    </a>
+
+    <!-- Header Section -->
+    <div class="admin-header">
+        <div class="header-content">
+            <h2 class="page-title">
+                <i class="icon-tickets"></i>
+                Tickets Recientes
+            </h2>
+            <div class="header-actions">
+                <button class="btn-filter" id="toggleFilters">
+                    <i class="icon-filter"></i>
+                    Filtrar
+                </button>
+                <a href="@Url.Action("AgregarUsuario")" class="btn-primary">
+                    <i class="bi bi-person-fill-add"></i>
+                    Agregar Usuario
+                </a>
+                <a href="@Url.Action("Crear", "TicketGeneral", new { returnUrl = Url.ActionContext.HttpContext.Request.Path })" class="btn btn-success">
+                    <i class="bi bi-ticket-perforated"></i>
+                    Crear Ticket
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros Panel -->
+    <div class="filters-panel" id="filtersPanel">
+        <form method="get" action="@Url.Action("Index")" class="filters-form">
+            <div class="filters-grid">
+                <!-- Filtro de Fecha -->
+                <div class="filter-group">
+                    <label class="filter-label">Periodo</label>
+                    <select name="fechaFiltro" id="fechaFiltro" class="filter-select">
+                        <option value="">Todas las fechas</option>
+                        <!option value="ultimos5" @(ViewBag.FechaFiltro == "ultimos5" ? "selected" : "")>Últimos 5 días</!option>
+                        <!option value="ultimos10" @(ViewBag.FechaFiltro == "ultimos10" ? "selected" : "")>Últimos 10 días</!option>
+                        <!option value="rango" @(ViewBag.FechaFiltro == "rango" ? "selected" : "")>Rango personalizado</!option>
+                    </select>
+                </div>
+
+                <!-- Rango de fechas (oculto por defecto) -->
+                <div class="filter-group date-range" id="dateRange" style="display: @(ViewBag.FechaFiltro == "rango" ? "block" : "none")">
+                    <div class="date-inputs">
+                        <div class="date-input-group">
+                            <label class="filter-label">Desde</label>
+                            <input type="date" name="fechaInicio" class="filter-input" value="@ViewBag.FechaInicio" />
+                        </div>
+                        <div class="date-input-group">
+                            <label class="filter-label">Hasta</label>
+                            <input type="date" name="fechaFin" class="filter-input" value="@ViewBag.FechaFin" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtro por Categoría -->
+                <div class="filter-group">
+                    <label class="filter-label">Categoría</label>
+                    <select name="categoriaId" class="filter-select">
+                        <option value="">Todas las categorías</option>
+                        @if (ViewBag.Categorias != null)
+                        {
+                            @foreach (var categoria in (IEnumerable<dynamic>)ViewBag.Categorias)
+                            {
+                                <!option value="@categoria.CategoriaId" @(ViewBag.CategoriaId != null && ViewBag.CategoriaId.ToString() == categoria.CategoriaId.ToString() ? "selected" : "")>
+                                    @categoria.Nombre
+                                </!option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Filtro por Estado -->
+                <div class="filter-group">
+                    <label class="filter-label">Estado</label>
+                    <select name="estadoId" class="filter-select">
+                        <option value="">Todos los estados</option>
+                        @if (ViewBag.Estados != null)
+                        {
+                            @foreach (var estado in (IEnumerable<dynamic>)ViewBag.Estados)
+                            {
+                                <!option value="@estado.EstadoId" @(ViewBag.EstadoId != null && ViewBag.EstadoId.ToString() == estado.EstadoId.ToString() ? "selected" : "")>
+                                    @estado.NombreEstado
+                                </!option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Filtro por Usuario Asignado -->
+                <div class="filter-group">
+                    <label class="filter-label">Asignado a</label>
+                    <select name="usuarioAsignadoId" class="filter-select">
+                        <option value="">Todos los usuarios</option>
+                        <!option value="0" @(ViewBag.UsuarioAsignadoId != null && ViewBag.UsuarioAsignadoId.ToString() == "0" ? "selected" : "")>Sin asignar</!option>
+                        @if (ViewBag.UsuariosAsignados != null)
+                        {
+                            @foreach (var usuario in (IEnumerable<dynamic>)ViewBag.UsuariosAsignados)
+                            {
+                                <!option value="@usuario.UsuarioId" @(ViewBag.UsuarioAsignadoId != null && ViewBag.UsuarioAsignadoId.ToString() == usuario.UsuarioId.ToString() ? "selected" : "")>
+                                    @usuario.NombreCompleto
+                                </!option>
+                            }
+                        }
+                    </select>
+                </div>
 
 
+                <!-- NUEVO: Filtro por Prioridad -->
+                <div class="filter-group">
+                    <label class="filter-label">Prioridad</label>
+                    <select name="prioridad" class="filter-select">
+                        <option value="">Todas las prioridades</option>
+                        @if (ViewBag.Prioridades != null)
+                        {
+                            @foreach (var prioridadItem in (IEnumerable<string>)ViewBag.Prioridades)
+                            {
+                                <!option value="@prioridadItem" @(ViewBag.Prioridad == prioridadItem ? "selected" : "")>
+                                    @prioridadItem
+                                </!option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="filters-actions">
+                <button type="submit" class="btn-apply-filters">
+                    <i class="icon-check"></i>
+                    Aplicar Filtros
+                </button>
+                <a href="@Url.Action("Index")" class="btn-clear-filters">
+                    <i class="icon-clear"></i>
+                    Limpiar Filtros
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tickets Table -->
+    <div class="tickets-table-container">
+        <table class="tickets-table">
+            <thead>
+                <tr>
+                    <th class="col-id">ID</th>
+                    <th class="col-asunto">Asunto</th>
+                    <th class="col-cliente">Cliente</th>
+                    <th class="col-asignado">Asignado a</th>
+                    <th class="col-categoria">Categoría</th>
+                    <th class="col-prioridad">Prioridad</th>
+                    <th class="col-estado">Estado</th>
+                    <th class="col-acciones">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var ticket in Model)
+                    {
+                        <tr class="ticket-row">
+                            <td class="ticket-id">#TK@(ticket.TicketId.ToString("D4"))</td>
+                            <td class="ticket-asunto">
+                                <div class="asunto-content">
+                                    <span class="titulo">@ticket.Titulo</span>
+                                    @if (!string.IsNullOrEmpty(ticket.Descripcion))
+                                    {
+                                        <span class="descripcion">@(ticket.Descripcion.Length > 60 ? ticket.Descripcion.Substring(0, 60) + "..." : ticket.Descripcion)</span>
+                                    }
+                                </div>
+                            </td>
+                            <td class="ticket-cliente">
+                                @(string.IsNullOrEmpty(ticket.NombreEmpresa) ? "Fix|Now" : ticket.NombreEmpresa)
+                            </td>
+                            <td class="ticket-asignado">
+                                @if (!string.IsNullOrEmpty(ticket.UsuarioAsignado))
+                                {
+                                    <span>@ticket.UsuarioAsignado</span>
+                                }
+                                else
+                                {
+                                    <span class="sin-asignar">Sin asignar</span>
+                                }
+                            </td>
+                            <td class="ticket-categoria">
+                                <span class="categoria-badge">@ticket.NombreCategoria</span>
+                            </td>
+                            <td class="ticket-prioridad">
+                                @switch (ticket.Prioridad)
+                                {
+                                    case "Crítico":
+                                        <span class="prioridad-badge critico">
+                                            <span class="dot"></span>
+                                            Crítico
+                                        </span>
+                                        break;
+                                    case "Importante":
+                                        <span class="prioridad-badge importante">
+                                            <span class="dot"></span>
+                                            Importante
+                                        </span>
+                                        break;
+                                    case "Baja":
+                                        <span class="prioridad-badge baja">
+                                            <span class="dot"></span>
+                                            Baja
+                                        </span>
+                                        break;
+                                    default:
+                                        <span class="prioridad-badge normal">
+                                            <span class="dot"></span>
+                                            @ticket.Prioridad
+                                        </span>
+                                        break;
+                                }
+                            </td>
+                            <td class="ticket-estado">
+                                @{
+                                    string estadoClass = "";
+                                    switch (ticket.NombreEstado?.ToLower())
+                                    {
+                                        case "abierto":
+                                            estadoClass = "abierto";
+                                            break;
+                                        case "asignado":
+                                            estadoClass = "asignado";
+                                            break;
+                                        case "en progreso":
+                                            estadoClass = "en-progreso";
+                                            break;
+                                        case "en espera":
+                                            estadoClass = "en-espera";
+                                            break;
+                                        case "resuelto":
+                                            estadoClass = "resuelto";
+                                            break;
+                                        case "reabierto":
+                                            estadoClass = "reabierto";
+                                            break;
+                                        case "cerrado":
+                                            estadoClass = "cerrado";
+                                            break;
+                                        case "cancelado":
+                                            estadoClass = "cancelado";
+                                            break;
+                                        default:
+                                            estadoClass = "normal";
+                                            break;
+                                    }
+                                }
+                                <span class="estado-badge @estadoClass">@ticket.NombreEstado</span>
+                            </td>
+                            <td class="ticket-acciones">
+                                <div class="acciones-group">
+                                    <a href="@Url.Action("Detalles", new { id = ticket.TicketId })" class="action-btn view" title="Ver detalles">
+                                        <i class="icon-eye"></i>
+                                    </a>
+                                    <a href="@Url.Action("Editar", new { id = ticket.TicketId, returnUrl = Url.Action("Index", "Administrador") })" class="action-btn edit" title="Editar">
+                                        <i class="icon-edit"></i>
+                                    </a>
+                                    <button class="action-btn more" title="Más opciones">
+                                        <i class="icon-more"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <div class="empty-content">
+                                <i class="icon-inbox"></i>
+                                <p>No hay tickets para mostrar</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    @if (totalPages > 1)
+    {
+        <div class="pagination-container">
+            <div class="pagination-info">
+                Mostrando @((currentPage - 1) * pageSize + 1) - @(Math.Min(currentPage * pageSize, totalTickets)) de @totalTickets tickets
+            </div>
+            <nav class="pagination">
+                @{
+                    var routeValues = new RouteValueDictionary(ViewContext.HttpContext.Request.Query);
+                    routeValues["page"] = currentPage - 1;
+                }
+                <a href="@Url.Action("Index", routeValues)" class="page-btn prev @(currentPage <= 1 ? "disabled" : "")">
+                    <i class="icon-chevron-left"></i>
+                </a>
+
+                @{
+                    int startPage = Math.Max(1, currentPage - 2);
+                    int endPage = Math.Min(totalPages, currentPage + 2);
+                }
+
+                @for (int i = startPage; i <= endPage; i++)
+                {
+                    routeValues["page"] = i;
+                    <a href="@Url.Action("Index", routeValues)" class="page-btn @(i == currentPage ? "active" : "")">
+                        @i
+                    </a>
+                }
+
+                @{
+                    routeValues["page"] = currentPage + 1;
+                }
+                <a href="@Url.Action("Index", routeValues)" class="page-btn next @(currentPage >= totalPages ? "disabled" : "")">
+                    <i class="icon-chevron-right"></i>
+                </a>
+            </nav>
+        </div>
+    }
 </div>
+
+<style>
+    /* Iconos usando CSS */
+    .icon-tickets::before { content: "🎫"; }
+    .icon-filter::before { content: "🔍"; }
+    .icon-plus::before { content: "➕"; }
+    .icon-eye::before { content: "👁"; }
+    .icon-edit::before { content: "✏️"; }
+    .icon-more::before { content: "⋯"; }
+    .icon-inbox::before { content: "📥"; }
+    .icon-chevron-left::before { content: "‹"; }
+    .icon-chevron-right::before { content: "›"; }
+    .icon-user::before { content: "👤"; }
+    .icon-check::before { content: "✓"; }
+    .icon-clear::before { content: "✕"; }
+
+    /* Variables CSS */
+    :root {
+        --primary-blue: #3b82f6;
+        --secondary-blue: #e7f3ff;
+        --text-dark: #1f2937;
+        --text-gray: #6b7280;
+        --text-light: #9ca3af;
+        --border-light: #e5e7eb;
+        --bg-white: #ffffff;
+        --bg-gray: #f9fafb;
+        --success-green: #10b981;
+        --warning-orange: #f59e0b;
+        --danger-red: #ef4444;
+        --info-blue: #3b82f6;
+    }
+
+    /* Layout Principal */
+    .admin-container {
+        background: var(--bg-white);
+        min-height: 100vh;
+        padding: 24px;
+    }
+
+    /* Welcome Section */
+    .welcome-section {
+        margin-bottom: 24px;
+    }
+
+    .welcome-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 20px;
+        color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    }
+
+    .welcome-content {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .welcome-icon {
+        width: 48px;
+        height: 48px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    .welcome-info {
+        flex: 1;
+    }
+
+    .welcome-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+    }
+
+    .welcome-details {
+        font-size: 14px;
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    /* Header */
+    .admin-header {
+        margin-bottom: 24px;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn-filter {
+        background: var(--bg-white);
+        border: 1px solid var(--border-light);
+        padding: 8px 16px;
+        border-radius: 8px;
+        color: var(--text-gray);
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-filter:hover, .btn-filter.active {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        color: white;
+    }
+
+    .btn-primary {
+        background: var(--primary-blue);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: #2563eb;
+        color: white;
+        text-decoration: none;
+    }
+
+    /* Panel de Filtros */
+    .filters-panel {
+        background: var(--bg-white);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        display: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .filters-panel.active {
+        display: block;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-group.date-range {
+        grid-column: span 2;
+    }
+
+    .filter-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-gray);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .filter-select, .filter-input {
+        padding: 8px 12px;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        font-size: 14px;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        transition: all 0.2s;
+    }
+
+    .filter-select:focus, .filter-input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .date-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .date-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filters-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .btn-apply-filters {
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-apply-filters:hover {
+        background: #2563eb;
+    }
+
+    .btn-clear-filters {
+        background: var(--bg-white);
+        color: var(--text-gray);
+        border: 1px solid var(--border-light);
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-clear-filters:hover {
+        background: var(--bg-gray);
+        border-color: var(--danger-red);
+        color: var(--danger-red);
+        text-decoration: none;
+    }
+
+    /* Tabla */
+    .tickets-table-container {
+        background: var(--bg-white);
+        border-radius: 12px;
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .tickets-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .tickets-table thead {
+        background: var(--bg-gray);
+    }
+
+    .tickets-table th {
+        padding: 16px 12px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-gray);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .tickets-table td {
+        padding: 16px 12px;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+
+    .ticket-row:hover {
+        background: var(--bg-gray);
+    }
+
+    /* Columnas específicas */
+    .col-id { width: 8%; }
+    .col-asunto { width: 25%; }
+    .col-cliente { width: 15%; }
+    .col-asignado { width: 15%; }
+    .col-categoria { width: 12%; }
+    .col-prioridad { width: 10%; }
+    .col-estado { width: 10%; }
+    .col-acciones { width: 5%; }
+
+    /* Contenido de celdas */
+    .ticket-id {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: var(--text-gray);
+    }
+
+    .asunto-content {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .titulo {
+        font-weight: 500;
+        color: var(--text-dark);
+        line-height: 1.4;
+    }
+
+    .descripcion {
+        font-size: 12px;
+        color: var(--text-light);
+        line-height: 1.3;
+    }
+
+    .ticket-cliente {
+        color: var(--text-gray);
+        font-weight: 500;
+    }
+
+    .ticket-asignado {
+        color: var(--text-gray);
+    }
+
+    .sin-asignar {
+        color: var(--text-light);
+        font-style: italic;
+    }
+
+    /* Badges */
+    .categoria-badge {
+        background: #f0f9ff;
+        color: #0369a1;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid #bae6fd;
+    }
+
+    .prioridad-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .prioridad-badge .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .prioridad-badge.critico {
+        color: var(--danger-red);
+    }
+
+    .prioridad-badge.critico .dot {
+        background: var(--danger-red);
+    }
+
+    .prioridad-badge.importante {
+        color: var(--warning-orange);
+    }
+
+    .prioridad-badge.importante .dot {
+        background: var(--warning-orange);
+    }
+
+    .prioridad-badge.baja {
+        color: var(--success-green);
+    }
+
+    .prioridad-badge.baja .dot {
+        background: var(--success-green);
+    }
+
+    .estado-badge {
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 12px;
+        font-weight: 500;
+        text-align: center;
+        min-width: 80px;
+        display: inline-block;
+    }
+
+    .estado-badge.abierto { background: #dbeafe; color: #1e40af; }
+    .estado-badge.asignado { background: #e0f2fe; color: #0369a1; }
+    .estado-badge.en-progreso { background: #fef3c7; color: #d97706; }
+    .estado-badge.en-espera { background: #fde68a; color: #92400e; }
+    .estado-badge.resuelto { background: #d1fae5; color: #059669; }
+    .estado-badge.reabierto { background: #fed7d7; color: #c53030; }
+    .estado-badge.cerrado { background: #e2e8f0; color: #4a5568; }
+    .estado-badge.cancelado { background: #fee2e2; color: #dc2626; }
+
+    /* Acciones */
+    .acciones-group {
+        display: flex;
+        gap: 4px;
+    }
+
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: 1px solid var(--border-light);
+        background: var(--bg-white);
+        color: var(--text-gray);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: var(--bg-gray);
+        border-color: var(--primary-blue);
+        color: var(--primary-blue);
+        text-decoration: none;
+    }
+
+    /* Estado vacío */
+    .empty-state {
+        text-align: center;
+        padding: 48px 24px;
+    }
+
+    .empty-content {
+        color: var(--text-light);
+    }
+
+    .empty-content i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    /* Paginación */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 24px;
+        padding-top: 16px;
+    }
+
+    .pagination-info {
+        color: var(--text-gray);
+        font-size: 14px;
+    }
+
+    .pagination {
+        display: flex;
+        gap: 4px;
+    }
+
+    .page-btn {
+        padding: 8px 12px;
+        border: 1px solid var(--border-light);
+        background: var(--bg-white);
+        color: var(--text-gray);
+        text-decoration: none;
+        border-radius: 6px;
+        transition: all 0.2s;
+        min-width: 40px;
+        text-align: center;
+    }
+
+    .page-btn:hover:not(.disabled) {
+        background: var(--bg-gray);
+        border-color: var(--primary-blue);
+        color: var(--primary-blue);
+        text-decoration: none;
+    }
+
+    .page-btn.active {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        color: white;
+    }
+
+    .page-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle filtros
+        const toggleBtn = document.getElementById('toggleFilters');
+        const filtersPanel = document.getElementById('filtersPanel');
+        const fechaFiltro = document.getElementById('fechaFiltro');
+        const dateRange = document.getElementById('dateRange');
+
+        // Mostrar filtros si ya hay filtros aplicados
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasFilters = urlParams.get('fechaFiltro') || urlParams.get('categoriaId') || 
+                          urlParams.get('estadoId') || urlParams.get('usuarioAsignadoId');
+        
+        if (hasFilters) {
+            filtersPanel.classList.add('active');
+            toggleBtn.classList.add('active');
+        }
+
+        toggleBtn.addEventListener('click', function() {
+            filtersPanel.classList.toggle('active');
+            toggleBtn.classList.toggle('active');
+        });
+
+        // Mostrar/ocultar rango de fechas
+        fechaFiltro.addEventListener('change', function() {
+            if (this.value === 'rango') {
+                dateRange.style.display = 'block';
+            } else {
+                dateRange.style.display = 'none';
+            }
+        });
+
+        // Auto-submit cuando se cambian los filtros rápidos
+        const quickFilters = document.querySelectorAll('.filter-select:not(#fechaFiltro)');
+        quickFilters.forEach(filter => {
+            filter.addEventListener('change', function() {
+                if (this.value !== '') {
+                    // Auto aplicar filtro después de una breve pausa
+                    setTimeout(() => {
+                        document.querySelector('.filters-form').submit();
+                    }, 300);
+                }
+            });
+        });
+    });
+</script>
+

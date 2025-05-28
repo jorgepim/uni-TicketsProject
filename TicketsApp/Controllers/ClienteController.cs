@@ -13,11 +13,13 @@ namespace TicketsApp.Controllers
     {
 
         private readonly ApplicationDbContext _context;
+        private readonly EmailService _emailService;
 
-        public ClienteController(ApplicationDbContext context)
+        public ClienteController(ApplicationDbContext context, EmailService emailService)
         {
 
             _context = context;
+            _emailService = emailService;
         }
 
         public IActionResult Index()
@@ -56,8 +58,15 @@ namespace TicketsApp.Controllers
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
                 .Include(t => t.Adjunto)
+
+               .Include(t => t.ComentariosTicket)
+                .ThenInclude(c => c.Usuario)
+        .ThenInclude(u => u.Rol)
+
+
                 .Include(t => t.ComentariosTicket)
                     .ThenInclude(c => c.Usuario)
+                    
                 .FirstOrDefaultAsync(t => t.TicketId == id);
 
             if (ticket == null)
@@ -102,6 +111,25 @@ namespace TicketsApp.Controllers
 
                 _context.ComentariosTicket.Add(nuevo);
                 hayCambios = true;
+               
+                string cuerpoCorreoComentario = _emailService.GenerarCuerpoCorreoComentario(ticket.TicketId.ToString(), ticket.Titulo, nuevoComentario, "Creador del Ticket");
+                string emailCreador = await _context.Usuarios
+                    .Where(u => u.UsuarioId == ticket.UsuarioCreadorId)
+                    .Select(u => u.Email)
+                    .FirstOrDefaultAsync();
+                await _emailService.SendEmailAsync(emailCreador, "Nuevo Comentario en el Ticket", cuerpoCorreoComentario);
+                var asignacion = await _context.Asignaciones
+       .FirstOrDefaultAsync(a => a.TicketId == ticket.TicketId);
+
+                Usuario? usuarioAsignado = null;
+                if (asignacion != null)
+                {
+                    usuarioAsignado = await _context.Usuarios.FindAsync(asignacion.UsuarioAsignadoId);
+                    if (usuarioAsignado != null)
+                    {
+                        await _emailService.SendEmailAsync(usuarioAsignado.Email, "Nuevo Comentario en el Ticket", cuerpoCorreoComentario);
+                    }
+                }
             }
 
             // Adjuntar archivos
@@ -123,17 +151,53 @@ namespace TicketsApp.Controllers
                 }
 
                 hayCambios = true;
+
+                var cuerpoCorreoAdjunto = _emailService.GenerarCuerpoCorreoAdjunto(ticket.TicketId.ToString(), ticket.Titulo, "Archivo Adjunto", "Creador del Ticket");
+                string emailCreador = await _context.Usuarios
+                    .Where(u => u.UsuarioId == ticket.UsuarioCreadorId)
+                    .Select(u => u.Email)
+                    .FirstOrDefaultAsync();
+                await _emailService.SendEmailAsync(emailCreador, "Nuevo Archivo Adjunto en el Ticket", cuerpoCorreoAdjunto);
+
+                // Enviar correo al técnico asignado
+                var asignacion = await _context.Asignaciones
+       .FirstOrDefaultAsync(a => a.TicketId == ticket.TicketId);
+
+                Usuario? usuarioAsignado = null;
+                if (asignacion != null)
+                {
+                    usuarioAsignado = await _context.Usuarios.FindAsync(asignacion.UsuarioAsignadoId);
+                    if (usuarioAsignado != null)
+                    {
+                        await _emailService.SendEmailAsync(usuarioAsignado.Email, "Nuevo Archivo Adjunto en el Ticket", cuerpoCorreoAdjunto);
+                    }
+                }
             }
 
             if (!hayCambios)
+
+            {
+                return BadRequest("Debe agregar al menos un comentario o archivo.");
+            }
+
+
+            //ticket.EstadoId = estadoAbiertoId;
+
+
+
                 return BadRequest("Debe ingresar al menos un comentario o archivo adjunto.");
 
             // Crear notificación
+
             var notificacion = new Notificacion
             {
                 UsuarioId = usuarioId,
                 TicketId = ticketId,
+
+                Mensaje = $"Se agregaron nuevos comentarios y/o archivos.",
+
                 Mensaje = "Se agregó un nuevo comentario o archivo al ticket.",
+
                 FechaEnvio = DateTime.Now,
                 Leido = false
             };

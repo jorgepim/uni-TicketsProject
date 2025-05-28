@@ -1,38 +1,37 @@
 ﻿@{
-    ViewData["Title"] = "Tecnico";
+    ViewData["Title"] = "Panel Técnico";
     Layout = "~/Views/Shared/_LayoutTecnico.cshtml";
 }
 
-<div class="text-left">
-    <div class="mb-4">
-        @*  <p class="display-4 fs-2 fw-normal">Panel de Administrador</p> *@
-
+<div class="container mt-4">
+    <div class="bg-white p-4 rounded shadow-sm">
         @if (!string.IsNullOrEmpty(ViewBag.NombreCompleto as string))
         {
-            <div class="alert">
-                <h5 class="mb-1">
-                    <i class="bi bi-person-circle me-2"></i>
-                    Bienvenido, @ViewBag.NombreCompleto
-                </h5>
-                <small class="text-muted">
-                    @ViewBag.Email | Rol: @ViewBag.Rol
-                </small>
+            <div class="alert alert-primary d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-person-circle fs-3 me-3"></i>
+                <div>
+                    <h5 class="mb-0">Bienvenido, @ViewBag.NombreCompleto</h5>
+                    <small class="text-muted">@ViewBag.Email | Rol: @ViewBag.Rol</small>
+                </div>
             </div>
         }
+
+        <div class="d-grid gap-3 d-md-flex justify-content-md-start">
+            <a href="@Url.Action("CrearTicketTecnico", "TicketGeneral", new { returnUrl = Url.ActionContext.HttpContext.Request.Path })" class="btn btn-outline-success btn-lg">
+                <i class="fas fa-plus me-2"></i> Crear Nuevo Ticket
+            </a>
+
+            <a href="@Url.Action("TicketsAsignados", "Tecnico")" class="btn btn-outline-primary btn-lg">
+                <i class="fas fa-tasks me-2"></i> Tickets Asignados
+            </a>
+
+            <a href="@Url.Action("TodosLosTickets", "Tecnico")" class="btn btn-outline-dark btn-lg">
+                <i class="fas fa-history me-2"></i> Historial Tickets
+            </a>
+
+            <a href="@Url.Action("TicketsCreados", "Tecnico")" class="btn btn-outline-info btn-lg">
+                <i class="fas fa-user-edit me-2"></i> Mis Tickets
+            </a>
+        </div>
     </div>
-    <a href="@Url.Action("CrearTicketTecnico", "TicketGeneral", new { returnUrl = Url.ActionContext.HttpContext.Request.Path })" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Crear Nuevo Ticket
-    </a>
-    <a href="@Url.Action("TicketsAsignados", "Tecnico")" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Tickets Asignados
-    </a>
-    <a href="@Url.Action("TodosLosTickets", "Tecnico")" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Historial Tickets
-    </a>
-    <a href="@Url.Action("TicketsCreados", "Tecnico")" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Mis Tickets
-    </a>
-
-
-
 </div>
